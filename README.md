@@ -1,1 +1,3 @@
-# The Fourth Branch MVP
+# The Fourth Branch
+
+UC Berkeley AI Hackathon 2025
