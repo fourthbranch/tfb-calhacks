@@ -14,7 +14,7 @@ This module handles FastAPI app initialization and configuration.
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
-from db import supabase
+from .db import supabase
 from pydantic import BaseModel
 
 app = FastAPI(title="The Fourth Branch API")
