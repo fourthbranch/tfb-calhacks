@@ -13,7 +13,7 @@ from langgraph.types import interrupt, Command
 sys.path.append(os.path.abspath(
     os.path.join(os.path.dirname(__file__), "../fourthbranch")))
 
-from fourthbranch.state import (
+from agent.state import (
     ReportStateInput,
     ReportStateOutput,
     Sections,
@@ -23,7 +23,7 @@ from fourthbranch.state import (
     Queries,
     Feedback
 )
-from fourthbranch.prompts import (
+from agent.prompts import (
     report_planner_query_writer_instructions,
     report_planner_instructions,
     query_writer_instructions,
@@ -32,8 +32,8 @@ from fourthbranch.prompts import (
     section_grader_instructions,
     section_writer_inputs
 )
-from fourthbranch.configuration import Configuration
-from fourthbranch.utils import (
+from agent.configuration import Configuration
+from agent.utils import (
     format_sections,
     get_config_value,
     get_search_params,

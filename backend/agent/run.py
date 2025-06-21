@@ -14,9 +14,9 @@ from langchain_community.tools.tavily_search import TavilySearchResults
 # -------------------
 # Add the parent directory to sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from fourthbranch.graph import builder
-from fourthbranch.final_writer_prompts import FINAL_WRITER_SYSTEM_PROMPT, topic_generator_system_prompt
-from fourthbranch.formats import FinalNewsArticle
+from agent.graph import builder
+from agent.final_writer_prompts import FINAL_WRITER_SYSTEM_PROMPT, topic_generator_system_prompt
+from agent.formats import FinalNewsArticle
 from backend import supabase
 # -------------------
 
@@ -36,7 +36,7 @@ claude_3_7_sonnet = ChatAnthropic(
 )
 
 
-def generate_news(topic_query: str) -> FinalNewsArticle:
+def generate_report(topic_query: str) -> FinalNewsArticle:
     # Checkpointer for the graph approach
     checkpointer = MemorySaver()
     graph = builder.compile(checkpointer=checkpointer)
@@ -69,17 +69,18 @@ def generate_news(topic_query: str) -> FinalNewsArticle:
 
     report = asyncio.run(run_graph_agent(thread))
     print(f"Report: {report}")
+    return report
 
-    final_writer = claude_3_7_sonnet.with_structured_output(FinalNewsArticle)
+    # final_writer = claude_3_7_sonnet.with_structured_output(FinalNewsArticle)
 
-    messages = [
-        SystemMessage(content=FINAL_WRITER_SYSTEM_PROMPT),
-        HumanMessage(
-            content=f"You are given with this report:\n{report}\n\nPlease write a news article based on the report.")
-    ]
+    # messages = [
+    #     SystemMessage(content=FINAL_WRITER_SYSTEM_PROMPT),
+    #     HumanMessage(
+    #         content=f"You are given with this report:\n{report}\n\nPlease write a news article based on the report.")
+    # ]
 
-    news_article = final_writer.invoke(messages)
-    return news_article
+    # news_article = final_writer.invoke(messages)
+    # return news_article
 
 
 def topic_generator():
@@ -99,19 +100,21 @@ def topic_generator():
     topic_content = response["messages"][-1].content
     print(f"Topic Content: {topic_content}")
 
-    news_article = generate_news(topic_content)
+    report = generate_report(topic_content)
+
+    # TODO: Save the report to the database
 
     # Save the topic to the database
     supabase.table("existing_topics").insert(
         {"content": topic_content}).execute()
 
     # Save the article to the database
-    supabase.table("articles").insert({
-        "title": news_article.title,
-        "summary": news_article.summary,
-        "content": news_article.content,
-        "relevant_topics": news_article.relevant_topics
-    }).execute()
+    # supabase.table("articles").insert({
+    #     "title": news_article.title,
+    #     "summary": news_article.summary,
+    #     "content": news_article.content,
+    #     "relevant_topics": news_article.relevant_topics
+    # }).execute()
 
 
 if __name__ == "__main__":
