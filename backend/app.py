@@ -19,11 +19,7 @@ app = FastAPI(title="The Fourth Branch API")
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",  # Local development
-        "https://fourthbranch.vercel.app",  # Production frontend
-        "https://www.fourthbranch.vercel.app",  # Production frontend with www
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],  # Allow all methods
     allow_headers=["*"],  # Allow all headers

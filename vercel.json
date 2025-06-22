@@ -13,13 +13,7 @@
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "backend/main.py",
-      "headers": {
-        "Access-Control-Allow-Origin": "https://fourthbranch.vercel.app",
-        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-        "Access-Control-Allow-Headers": "X-Requested-With, Content-Type, Accept, Authorization",
-        "Access-Control-Allow-Credentials": "true"
-      }
+      "dest": "backend/main.py"
     }
   ]
 }

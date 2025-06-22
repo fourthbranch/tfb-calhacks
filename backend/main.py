@@ -12,7 +12,6 @@ This module is the main entry point for the API.
 """
 
 from fastapi import HTTPException, Depends
-from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 
