@@ -13,9 +13,11 @@ This module handles FastAPI app initialization and configuration.
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from .db import supabase
 from pydantic import BaseModel
+from backend.agent import topic_generator
+
 
 app = FastAPI(title="The Fourth Branch API")
 
@@ -54,7 +56,11 @@ class ArticleDetail(BaseModel):
 class SubscribeRequest(BaseModel):
     email: str
 
+      
+class GenNewsWithRequestRequest(BaseModel):
+    user_request: str
 
+      
 class UserCheckRequest(BaseModel):
     email: str
 
@@ -138,7 +144,25 @@ def subscribe(request: SubscribeRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail="Failed to subscribe")
 
+@app.get("/gen_news")
+def gen_news() -> Dict[str, Any]:
+    """Generate a topic for a news article"""
+    for _ in range(3):
+        topic_generator()
+    return {"message": "Generated news article"}
 
+
+@app.get("/gen_news_with_request")
+def gen_news_with_request(request: GenNewsWithRequestRequest) -> Dict[str, Any]:
+    """Generate a topic for a news article with a user request"""
+    three_article_ids = []
+    for _ in range(3):
+        article_id = topic_generator(user_request=request.user_request)
+        if article_id != -1:
+            three_article_ids.append(article_id)
+    return {"article_ids": three_article_ids}
+
+  
 @app.post("/users/check")
 def check_user(request: UserCheckRequest):
     """Check if a user exists by email"""
@@ -215,3 +239,4 @@ def update_user(user_id: int, request: UserUpdateRequest):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to update user: {str(e)}")
+

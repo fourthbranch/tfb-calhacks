@@ -2,5 +2,4 @@
 Fourthbranch package initialization
 """
 
-from .graph import builder
-
+from .run import topic_generator
