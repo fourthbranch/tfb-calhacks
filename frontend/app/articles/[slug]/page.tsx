@@ -113,12 +113,7 @@ export default function ArticlePage(props: PageProps) {
           {/* Optional Side Panel */}
           {article.opposite_view && (
             <aside
-              className="w-1/4 bg-gray-100 p-4 rounded-lg shadow sticky self-start"
-              style={{
-                top: "15rem", // Stick 32px from top when scrolling
-                maxHeight: "calc(100vh - 4rem)", // Limit height to viewport minus top offset
-                overflowY: "auto", // Only scroll if content is too long
-              }}
+              className="w-1/4 bg-gray-100 p-4 rounded-lg shadow"
             >
               <h2 className="text-xl font-bold mb-4">Different Perspectives</h2>
 
