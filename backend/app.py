@@ -61,7 +61,7 @@ class SubscribeRequest(BaseModel):
 
 class GenNewsWithRequestRequest(BaseModel):
     user_request: str
-    user_email: str
+    user_email: Optional[str] = None  # Add user email for personalization
 
 
 class UserCheckRequest(BaseModel):
@@ -181,20 +181,28 @@ def gen_news() -> Dict[str, Any]:
 
 @app.post("/gen_news_with_request")
 def gen_news_with_request(request: GenNewsWithRequestRequest) -> Dict[str, Any]:
-    """Generate a topic for a news article with a user request"""
+    """Generate a topic for a news article with a user request and preferences"""
     article_ids = []
-
-    # Get the user id from the email
-    user_id = supabase.table("users").select("id").eq(
-        "email", request.user_email).execute()
-    if not user_id.data or len(user_id.data) == 0:
-        raise HTTPException(status_code=400, detail="User not found")
-    user_id = user_id.data[0]["id"]
-
+    
+    # Try to find user by email for personalization
+    user_id = -1  # Default to anonymous
+    if request.user_email:
+        try:
+            user_res = supabase.table("users").select("id").eq("email", request.user_email).execute()
+            if user_res.data and len(user_res.data) > 0:
+                user_id = user_res.data[0]["id"]
+                print(f"Found user {user_id} for email {request.user_email}")
+            else:
+                print(f"No user found for email {request.user_email}, using anonymous mode")
+        except Exception as e:
+            print(f"Error looking up user: {e}, using anonymous mode")
+    
     for _ in range(1):
+        article_id = topic_generator(user_id=user_id, user_request=request.user_request)
         article_id = topic_generator(user_id=user_id, user_request=request.user_request)
         if article_id != -1:
             article_ids.append(article_id)
+    
     return {"article_ids": article_ids}
 
 

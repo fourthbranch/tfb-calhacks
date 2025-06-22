@@ -28,28 +28,60 @@ const Chatbox: React.FC = () => {
     }
     setLoading(true);
     try {
+      // Get user email from localStorage for personalization
+      const userEmail = localStorage.getItem('user_email');
+      console.log("User email from localStorage:", userEmail);
+
       const res = await fetch("http://localhost:8000/gen_news_with_request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_request: input }),
+        body: JSON.stringify({ 
+          user_request: input,
+          user_email: userEmail 
+        }),
       });
       if (!res.ok) throw new Error("Failed to generate stories.");
       const data = await res.json();
-      const ids: string[] = data.article_ids || [];
-      if (ids.length === 0) throw new Error("No stories generated.");
-      // Fetch articles by ID
-      const fetched = await Promise.all(
-        ids.map(async (id) => {
-          const article = await getArticleBySlug(id);
-          return article
-            ? { id: article.id, slug: article.slug, title: article.title }
-            : null;
-        })
-      );
-      setArticles(fetched.filter(Boolean) as ArticleLink[]);
+      console.log("Backend response:", data); // Debug log
+      const ids: number[] = data.article_ids || [];
+      console.log("Article IDs:", ids); // Debug log
+      
+      if (ids.length === 0) {
+        setError("No stories were generated.");
+        return;
+      }
+
+      // Fetch article details for each ID
+      const articlePromises = ids.map(async (id) => {
+        try {
+          const article = await getArticleBySlug(id.toString());
+          console.log("Fetched article:", article); // Debug log
+          if (!article) return null;
+          return {
+            id: article.id.toString(),
+            slug: article.slug || article.id.toString(),
+            title: article.title
+          };
+        } catch (err) {
+          console.error(`Failed to fetch article ${id}:`, err);
+          return null;
+        }
+      });
+
+      const fetchedArticles = await Promise.all(articlePromises);
+      const validArticles = fetchedArticles.filter(article => article !== null);
+      console.log("Valid articles:", validArticles); // Debug log
+
+      if (validArticles.length === 0) {
+        setError("Failed to fetch generated stories.");
+        return;
+      }
+
+      setArticles(validArticles);
       setShowResult(true);
-    } catch (err: any) {
-      setError(err.message || "Something went wrong.");
+    } catch (err) {
+      console.error("Error:", err);
+      setError("Failed to generate stories.");
     } finally {
       setLoading(false);
     }

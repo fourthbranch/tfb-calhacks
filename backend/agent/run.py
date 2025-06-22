@@ -72,7 +72,7 @@ def topic_generator(user_id: int = -1, user_request: str = "") -> int:
     else:
         user_info = supabase.table("users").select(
             "*").eq("id", user_id).execute()
-        political_leaning = user_info.data[0].political_leaning
+        political_leaning = user_info.data[0]["political_leaning"]
 
     messages = [
         SystemMessage(
@@ -166,7 +166,7 @@ def topic_generator(user_id: int = -1, user_request: str = "") -> int:
 
     else:
         # Get the user's preferred writing style
-        preferred_writing_style = user_info.data[0].preferred_writing_style
+        preferred_writing_style = user_info.data[0]["preferred_writing_style"]
         writing_style_str = ""
         if "short" in preferred_writing_style:
             writing_style_str += "short and concise summary that only cover the most important information\n"
