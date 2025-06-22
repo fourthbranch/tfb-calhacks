@@ -21,7 +21,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       disabled,
       ...props
     },
-    ref,
+    ref
   ) => {
     const baseStyles =
       "rounded-full border border-solid transition-colors flex items-center justify-center gap-2 font-medium";
@@ -29,8 +29,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const variantStyles = {
       primary:
         "bg-foreground text-background border-transparent hover:bg-[#383838] dark:hover:bg-[#ccc]",
-      secondary:
-        "bg-transparent border-black/[.08] dark:border-white/[.145] hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent",
+      secondary: "bg-white text-black border-transparent hover:bg-gray-200",
       outline: "bg-transparent border-foreground/20 hover:bg-foreground/5",
     };
 
@@ -85,7 +84,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         )}
       </button>
     );
-  },
+  }
 );
 
 Button.displayName = "Button";
