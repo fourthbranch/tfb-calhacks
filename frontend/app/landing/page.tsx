@@ -24,8 +24,11 @@ export default function LandingPage() {
 
     try {
       const userCheck = await api.checkUser(email);
-      
+
       localStorage.setItem("user_email", email);
+
+      const email2 = localStorage.getItem("user_email")
+      console.log(email2)
 
       if (userCheck.exists && userCheck.onboarding_completed) {
         router.push("/");

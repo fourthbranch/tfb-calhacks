@@ -47,6 +47,11 @@ class ArticleListItem(BaseModel):
     relevant_topics: Optional[list[str]] = None
 
 
+class ArticlesResponse(BaseModel):
+    user_preferred: List[ArticleListItem]
+    explore: List[ArticleListItem]
+
+
 class ArticleDetail(BaseModel):
     id: int
     title: str
@@ -89,51 +94,91 @@ class UserUpdateRequest(BaseModel):
     preferred_writing_style: Optional[List[str]] = None
 
 
-@app.get("/articles", response_model=List[ArticleListItem])
-def list_articles(api_key: str = Depends(get_api_key)):
-    # Fetch articles with created_at using a JOIN query
-    try:
-        articles_res = supabase.table("articles_new").select(
-            "id, title, summary, relevant_topics, bias, opposite_view, report_id, reports!inner(created_at)"
-        ).execute()
+@app.get("/articles", response_model=ArticlesResponse)
+def list_articles_display(request: Request, api_key: str = Depends(get_api_key)):
+    # Get user email from request headers
+    user_email = request.headers.get("user_email")
+    print("reached server side, user email is:", user_email)
+    if not user_email:
+        raise HTTPException(
+            status_code=401, detail="Unauthorized: Missing user email in headers")
 
-        if not articles_res.data:
-            return []
 
-        # Transform the data to flatten the nested reports structure
-        articles_with_created_at = []
-        for article in articles_res.data:
-            # Extract created_at from the nested reports object
-            created_at = article.get("reports", {}).get(
-                "created_at") if article.get("reports") else None
+    # Fetch articles from articles_new
+    articles_res = supabase.table("articles_new").select(
+        "id, title, summary, relevant_topics, topic_bias, opposite_view, report_id, preferred_writing_style"
+    ).execute()
 
-            # Create the flattened article object
-            article_item = {
-                "id": article["id"],
-                "title": article["title"],
-                "summary": article.get("summary"),
-                "relevant_topics": article.get("relevant_topics"),
-                "bias": article.get("bias"),
-                "opposite_view": article.get("opposite_view"),
-                "created_at": created_at
-            }
-            articles_with_created_at.append(article_item)
-
-        # Sort articles by created_at in descending order
-        articles_with_created_at.sort(
-            key=lambda x: x["created_at"] or "", reverse=True)
-
-        # Print the first article for debugging
-        if articles_with_created_at:
-            print(
-                f"First article with created_at: {articles_with_created_at[0]}")
-
-        return articles_with_created_at
-
-    except Exception as e:
-        print(f"Error fetching articles: {e}")
-        # Return empty list on error to prevent 500 errors
+    if not articles_res.data:
         return []
+
+    # Fetch created_at for each article using report_id
+    articles_with_created_at = []
+    for article in articles_res.data:
+        report_res = supabase.table("reports").select("created_at").eq(
+            "id", article["report_id"]).single().execute()
+        if report_res.data:
+            article["created_at"] = report_res.data["created_at"]
+        else:
+            # Handle case where report is not found
+            article["created_at"] = None
+        articles_with_created_at.append(article)
+
+    # Sort articles by created_at in descending order
+    articles_with_created_at.sort(key=lambda x: x["created_at"], reverse=True)
+
+    # Fetch user preferences from the "users" table
+    user_res = supabase.table("users").select(
+        "preferred_topics, political_leaning, preferred_writing_style"
+    ).eq("email", user_email).single().execute()
+
+    if not user_res.data:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Extract user preferences
+    preferred_topics = user_res.data.get("preferred_topics", [])
+    political_leaning = user_res.data.get("political_leaning", None)
+    preferred_writing_style = user_res.data.get("preferred_writing_style", [])
+
+    print("preferred_topics: ", preferred_topics)
+    print(" political_leaning", political_leaning)
+    print("preferred_writing_style", preferred_writing_style)
+
+    # Define mapping for topic_bias to political_leaning
+    bias_to_leaning = {
+        "liberal": "left",
+        "neutral": "neutral",
+        "conservative": "right"
+    }
+
+    # Filter articles into user_preferred and explore
+    user_preferred = []
+    explore = []
+
+    for article in articles_with_created_at:
+        print(article)
+
+        # Translate topic_bias to political_leaning
+        article_political_leaning = bias_to_leaning.get(article.get("topic_bias"))
+
+        print("article writing style:",  article.get("preferred_writing_style"))
+
+        # Check if the article matches user preferences
+        matches_topics = any(
+            topic in preferred_topics for topic in article.get("relevant_topics"))
+        matches_political_leaning = article_political_leaning == political_leaning
+        matches_writing_style = article.get(
+            "preferred_writing_style") == preferred_writing_style
+
+        if matches_topics and matches_political_leaning and matches_writing_style:
+            user_preferred.append(article)
+        else:
+            explore.append(article)
+
+    # print(articles_with_created_at)
+
+    # Return the filtered lists
+    return {"user_preferred": user_preferred, "explore": explore}
 
 
 @app.get("/articles/{article_id}", response_model=ArticleDetail)
@@ -150,37 +195,18 @@ def get_article(article_id: int, api_key: str = Depends(get_api_key)):
         supabase.table("global_metrics").update(
             {"value": current + 1}).eq("key", "total_page_views").execute()
 
-    try:
-        # Fetch article with created_at using a JOIN query
-        res = supabase.table("articles_new").select(
-            "*, reports!inner(created_at)"
-        ).eq("id", article_id).single().execute()
+    res = supabase.table("articles_new").select(
+        "*", count="exact").eq("id", article_id).single().execute()
+    if not res.data:
+        raise HTTPException(status_code=404, detail="Article not found")
+    report_res = supabase.table("reports").select("created_at").eq(
+        "id", res.data["report_id"]).single().execute()
+    if report_res.data:
+        res.data["created_at"] = report_res.data["created_at"]
+    else:
+        res.data["created_at"] = None  # Handle case where report is not found
 
-        if not res.data:
-            raise HTTPException(status_code=404, detail="Article not found")
-
-        # Extract created_at from the nested reports object
-        created_at = res.data.get("reports", {}).get(
-            "created_at") if res.data.get("reports") else None
-
-        # Create the article detail object
-        article_detail = {
-            "id": res.data["id"],
-            "title": res.data["title"],
-            "summary": res.data.get("summary"),
-            "content": res.data["content"],
-            "created_at": created_at,
-            "metadata": res.data.get("metadata"),
-            "relevant_topics": res.data.get("relevant_topics"),
-            "bias": res.data.get("bias"),
-            "opposite_view": res.data.get("opposite_view")
-        }
-
-        return article_detail
-
-    except Exception as e:
-        print(f"Error fetching article {article_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to fetch article")
+   return res.data
 
 
 @app.get("/metrics/page_views")
@@ -222,57 +248,36 @@ def gen_news(api_key: str = Depends(get_api_key)) -> Dict[str, Any]:
     return {"message": "Generated news article"}
 
 
-@app.post("/gen_news_with_request")
-def gen_news_with_request(request: GenNewsWithRequestRequest, api_key: str = Depends(get_api_key)) -> Dict[str, Any]:
-    """Generate a topic for a news article with a user request and preferences"""
-    article_ids = []
-
-    # Try to find user by email for personalization
-    user_id = -1  # Default to anonymous
-    if request.user_email:
-        try:
-            user_res = supabase.table("users").select(
-                "id").eq("email", request.user_email).execute()
-            if user_res.data and len(user_res.data) > 0:
-                user_id = user_res.data[0]["id"]
-                print(f"Found user {user_id} for email {request.user_email}")
-            else:
-                print(
-                    f"No user found for email {request.user_email}, using anonymous mode")
-        except Exception as e:
-            print(f"Error looking up user: {e}, using anonymous mode")
-
-    for _ in range(1):
-        article_id = topic_generator(
-            user_id=user_id, user_request=request.user_request)
-        article_id = topic_generator(
-            user_id=user_id, user_request=request.user_request)
+@app.get("/gen_news_with_request")
+def gen_news_with_request(request: GenNewsWithRequestRequest,
+                          api_key: str = Depends(get_api_key)) -> Dict[str, Any]:
+    """Generate a topic for a news article with a user request"""
+    three_article_ids = []
+    for _ in range(3):
+        article_id = topic_generator(user_request=request.user_request)
         if article_id != -1:
-            article_ids.append(article_id)
-
-    return {"article_ids": article_ids}
+            three_article_ids.append(article_id)
+    return {"article_ids": three_article_ids}
 
 
 @app.post("/users/check")
 def check_user(request: UserCheckRequest, api_key: str = Depends(get_api_key)):
     """Check if a user exists by email"""
-    print(f"Received check_user request for email: {request.email}")
     try:
         res = supabase.table("users").select(
             "id, email").eq("email", request.email).execute()
         if res.data and len(res.data) > 0:
             user = res.data[0]
-            print(f"User found: {user['id']}")
             return {
                 "exists": True,
                 "onboarding_completed": True,  # Assume completed if user exists
                 "user_id": user["id"]
             }
         else:
-            print("User not found")
             return {"exists": False, "onboarding_completed": False}
+    except HTTPException as e:
+        raise e
     except Exception as e:
-        print(f"Error in check_user: {e}")
         raise HTTPException(
             status_code=500, detail=f"Failed to check user: {str(e)}")
 
@@ -304,13 +309,11 @@ def create_user(request: UserCreateRequest, api_key: str = Depends(get_api_key))
                 "user_id": res.data[0]["id"]
             }
         else:
-            raise HTTPException(
-                status_code=500, detail="Failed to create user")
-    except HTTPException:
-        raise
+            raise HTTPException(status_code=500, detail="Failed to create user")
+    except HTTPException as e:
+        raise e
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to create user: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to create user: {str(e)}")
 
 
 @app.put("/users/{user_id}")
@@ -329,14 +332,15 @@ def update_user(user_id: int, request: UserUpdateRequest, api_key: str = Depends
         if request.preferred_writing_style is not None:
             update_data["preferred_writing_style"] = request.preferred_writing_style
 
-        res = supabase.table("users").update(
-            update_data).eq("id", user_id).execute()
+        res = supabase.table("users").update(update_data).eq("id", user_id).execute()
         if res.data and len(res.data) > 0:
             return {"message": "User updated successfully"}
         else:
             raise HTTPException(status_code=404, detail="User not found")
+
     except HTTPException:
-        raise
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to update user: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to update user: {str(e)}")
+

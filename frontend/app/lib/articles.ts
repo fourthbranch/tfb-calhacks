@@ -32,15 +32,31 @@ const API_BASE = (
   process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000"
 ).replace(/\/$/, "");
 
-export async function getAllArticles(): Promise<Article[]> {
+export async function getAllArticlesDisplay(userEmail: string | null): Promise<{ foryou: Article[]; explore: Article[] }> {
+  // Get user email from localStorage
+  //const userEmail = localStorage.getItem('user_email');
+
+  console.log("inside getAllArticlesDisplay")
   const res = await fetch(`${API_BASE}/articles`, {
     method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "user_email": userEmail || "", // Pass user email in the header
+    },
     next: { revalidate: 60 },
-    headers: createAuthHeaders(),
   });
-  if (!res.ok) return [];
+
+
+  if (!res.ok) return { foryou: [], explore: [] };
+
+
+  console.log("dsffsfds")
+  console.log("Explore articles:", res);
+
+
   const data = await res.json();
-  return data.map(
+  // Map backend data to frontend Article structure
+  const foryou = data.user_preferred.map(Add commentMore actions
     (item: BackendArticle): Article => ({
       id: item.id || "",
       slug: item.slug || item.id?.toString() || "",
@@ -57,7 +73,28 @@ export async function getAllArticles(): Promise<Article[]> {
       bias: item.bias || "",
     })
   );
+
+  const explore = data.explore.map(
+    (item: BackendArticle): Article => ({
+      id: item.id || "",
+      slug: item.slug || item.id?.toString() || "",
+      title: item.title || "",
+      summary: item.summary || "",
+      content: item.content || "",
+      image:
+        item.image ||
+        `/image/politics_${Math.floor(Math.random() * 2) + 1}.jpg`,
+      categories: item.relevant_topics || ["US"],
+      date: item.created_at || "",
+      featured: false,
+      opposite_view: item.opposite_view || "",Add commentMore actions
+      bias: item.bias || "",
+    })
+  );
+  return { foryou, explore };
 }
+
+
 
 export async function getArticleBySlug(
   slug: string
