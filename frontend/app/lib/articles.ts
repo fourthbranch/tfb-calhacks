@@ -7,8 +7,10 @@ export interface Article {
   image: string;
   categories: string[];
   date: string;
+  bias?: string;
   featured?: boolean;
   opposite_view?: string; 
+
 }
 
 interface BackendArticle {
@@ -21,6 +23,7 @@ interface BackendArticle {
   relevant_topics?: string[];
   created_at?: string;
   opposite_view?: string; 
+  bias?: string;
 }
 
 // Backend API base URL
@@ -44,6 +47,7 @@ export async function getAllArticles(): Promise<Article[]> {
       date: item.created_at || "",
       featured: false,
       opposite_view: item.opposite_view || "",
+      bias: item.bias || "",
     })
   );
 }
@@ -65,6 +69,8 @@ export async function getArticleBySlug(
     categories: item.relevant_topics || [],
     date: item.created_at || "",
     featured: false,
+    bias: item.bias || "",
+    opposite_view: item.opposite_view || "",
   };
 }
 

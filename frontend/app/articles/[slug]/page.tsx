@@ -136,6 +136,25 @@ export default async function ArticlePage(props: PageProps) {
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6">
                 {article.title}
               </h1>
+
+              {/* Political Bias Section */}
+<div className="flex items-start gap-4 mb-6">
+  {["Left", "Neutral", "Right"].map((bias) => (
+    <div
+      key={bias}
+      className={`px-4 py-2 text-sm font-medium cursor-pointer ${
+        article.bias === bias.toLowerCase()
+          ? "bg-gray-700 text-white"
+          : "bg-gray-200 text-gray-600"
+      }`}
+      style={{
+        transition: "background-color 0.3s ease, color 0.3s ease",
+      }}
+    >
+      {bias}
+    </div>
+  ))}
+</div>
   
               <p className="text-xl text-foreground/80 mb-6 font-serif">
                 {article.summary}
