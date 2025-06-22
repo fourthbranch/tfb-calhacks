@@ -152,7 +152,7 @@ def gen_news() -> Dict[str, Any]:
     return {"message": "Generated news article"}
 
 
-@app.get("/gen_news_with_request")
+@app.post("/gen_news_with_request")
 def gen_news_with_request(request: GenNewsWithRequestRequest) -> Dict[str, Any]:
     """Generate a topic for a news article with a user request"""
     three_article_ids = []
