@@ -152,3 +152,21 @@ body {
 .dark .prose-invert {
   color: var(--foreground);
 }
+
+.animated-gradient {
+  background: linear-gradient(-45deg, #ff6b6b, #f06595, #cc5de8, #845ef7, #5c7cfa, #339af0, #22b8cf, #38d9a9);
+  background-size: 400% 400%;
+  animation: gradient 20s ease infinite;
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
