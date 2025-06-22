@@ -1,11 +1,16 @@
-import React from "react";
+"use client";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import Header from "../../components/ui/Header";
 import Footer from "../../components/ui/Footer";
 import ArticleCard from "../../components/ui/ArticleCard";
-import { getArticleBySlug, type Article } from "../../lib/articles";
+import {
+  getArticleBySlug,
+  getImpactAnalysis,
+  type Article,
+} from "../../lib/articles";
 import { formatDate } from "../../lib/utils";
 
 // Helper to parse content blocks for source URLs and notes
@@ -33,16 +38,47 @@ function parseArticleContent(content: string) {
   });
 }
 
-type PageProps = {
+interface PageProps {
   params: Promise<{ slug: string }>;
-};
+}
 
-export default async function ArticlePage(props: PageProps) {
-  const params = await props.params;
-  const article = await getArticleBySlug(params.slug);
+export default function ArticlePage(props: PageProps) {
+  const [article, setArticle] = useState<Article | null>(null);
+  const [impactAnalysis, setImpactAnalysis] = useState<string | null>(null);
+  const [loadingImpact, setLoadingImpact] = useState(false);
+  const [params, setParams] = useState<{ slug: string } | null>(null);
 
-  if (!article) {
-    notFound();
+  useEffect(() => {
+    const loadArticle = async () => {
+      const resolvedParams = await props.params;
+      setParams(resolvedParams);
+
+      const articleData = await getArticleBySlug(resolvedParams.slug);
+      if (!articleData) {
+        notFound();
+      }
+      setArticle(articleData);
+
+      // Get user email and fetch impact analysis
+      const userEmail = localStorage.getItem("user_email");
+      if (userEmail && articleData.id) {
+        setLoadingImpact(true);
+        try {
+          const analysis = await getImpactAnalysis(articleData.id, userEmail);
+          setImpactAnalysis(analysis);
+        } catch (error) {
+          console.error("Error loading impact analysis:", error);
+        } finally {
+          setLoadingImpact(false);
+        }
+      }
+    };
+
+    loadArticle();
+  }, [props.params]);
+
+  if (!article || !params) {
+    return <div>Loading...</div>;
   }
 
   const relatedArticles: Article[] = [];
@@ -155,6 +191,29 @@ export default async function ArticlePage(props: PageProps) {
               <p className="text-xl text-foreground/80 mb-6 font-serif">
                 {article.summary}
               </p>
+
+              {/* Impact Analysis Section */}
+              {impactAnalysis && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-4 mb-6 rounded-r-lg">
+                  <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">
+                    How will this impact you?
+                  </h3>
+                  <p className="text-blue-700 dark:text-blue-300">
+                    {impactAnalysis}
+                  </p>
+                </div>
+              )}
+
+              {loadingImpact && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-4 mb-6 rounded-r-lg">
+                  <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">
+                    How will this impact you?
+                  </h3>
+                  <p className="text-blue-700 dark:text-blue-300">
+                    Analyzing personal impact...
+                  </p>
+                </div>
+              )}
             </header>
 
             {/* Featured Image */}

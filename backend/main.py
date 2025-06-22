@@ -22,6 +22,7 @@ from backend.agent.run import stream_report_generation
 from backend.app import app
 from backend.security import get_api_key
 from backend.db import supabase
+from backend.gemini_service import generate_impact_analysis
 
 
 @app.get("/")
@@ -380,3 +381,57 @@ def update_user(user_id: int, request: UserUpdateRequest, api_key: str = Depends
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to update user: {str(e)}")
+
+
+class ImpactAnalysisRequest(BaseModel):
+    article_id: int
+    user_email: str
+
+
+@app.post("/articles/{article_id}/impact-analysis")
+def get_impact_analysis(
+    article_id: int,
+    request: ImpactAnalysisRequest,
+    api_key: str = Depends(get_api_key)
+):
+    """Generate personalized impact analysis for an article"""
+    try:
+        # Get the article details
+        article_res = supabase.table("articles_new").select(
+            "title, summary, content"
+        ).eq("id", article_id).single().execute()
+
+        if not article_res.data:
+            raise HTTPException(status_code=404, detail="Article not found")
+
+        # Get user's additional info
+        user_res = supabase.table("users").select(
+            "additional_info"
+        ).eq("email", request.user_email).single().execute()
+
+        if not user_res.data:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        user_additional_info = user_res.data.get("additional_info", "")
+
+        # If user has no additional info, return empty response
+        if not user_additional_info or user_additional_info.strip() == "":
+            return {"impact_analysis": None}
+
+        # Generate impact analysis
+        impact_analysis = generate_impact_analysis(
+            article_title=article_res.data["title"],
+            article_summary=article_res.data["summary"],
+            article_content=article_res.data["content"],
+            user_additional_info=user_additional_info
+        )
+
+        return {"impact_analysis": impact_analysis}
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate impact analysis: {str(e)}"
+        )
