@@ -23,6 +23,7 @@ from backend.app import app
 from backend.security import get_api_key
 from backend.db import supabase
 from backend.gemini_service import generate_impact_analysis
+from backend.voice_service import generate_podcast_audio
 
 
 @app.get("/")
@@ -434,4 +435,60 @@ def get_impact_analysis(
         raise HTTPException(
             status_code=500,
             detail=f"Failed to generate impact analysis: {str(e)}"
+        )
+
+
+class PodcastAudioRequest(BaseModel):
+    user_email: str
+
+
+@app.post("/articles/{article_id}/podcast-audio")
+def get_podcast_audio(
+    article_id: int,
+    request: PodcastAudioRequest,
+    api_key: str = Depends(get_api_key)
+):
+    """Generate podcast-style audio for an article"""
+    try:
+        # Get the article details
+        article_res = supabase.table("articles_new").select(
+            "title, summary, content"
+        ).eq("id", article_id).single().execute()
+
+        if not article_res.data:
+            raise HTTPException(status_code=404, detail="Article not found")
+
+        # Get user's additional info
+        user_res = supabase.table("users").select(
+            "additional_info"
+        ).eq("email", request.user_email).single().execute()
+
+        user_additional_info = None
+        if user_res.data:
+            user_additional_info = user_res.data.get("additional_info", "")
+            if not user_additional_info or user_additional_info.strip() == "":
+                user_additional_info = None
+
+        # Generate podcast audio
+        audio_result = generate_podcast_audio(
+            article_title=article_res.data["title"],
+            article_summary=article_res.data["summary"],
+            article_content=article_res.data["content"],
+            user_additional_info=user_additional_info
+        )
+
+        if "error" in audio_result:
+            raise HTTPException(
+                status_code=500,
+                detail=audio_result["error"]
+            )
+
+        return audio_result
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate podcast audio: {str(e)}"
         )

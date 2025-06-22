@@ -6,9 +6,11 @@ import { notFound } from "next/navigation";
 import Header from "../../components/ui/Header";
 import Footer from "../../components/ui/Footer";
 import ArticleCard from "../../components/ui/ArticleCard";
+import PodcastPlayer from "../../components/ui/PodcastPlayer";
 import {
   getArticleBySlug,
   getImpactAnalysis,
+  getPodcastAudio,
   type Article,
 } from "../../lib/articles";
 import { formatDate } from "../../lib/utils";
@@ -46,6 +48,9 @@ export default function ArticlePage(props: PageProps) {
   const [article, setArticle] = useState<Article | null>(null);
   const [impactAnalysis, setImpactAnalysis] = useState<string | null>(null);
   const [loadingImpact, setLoadingImpact] = useState(false);
+  const [podcastAudio, setPodcastAudio] = useState<{ audio_data: string; transcript: string; duration_estimate: number } | null>(null);
+  const [loadingPodcast, setLoadingPodcast] = useState(false);
+  const [showPodcast, setShowPodcast] = useState(false);
   const [params, setParams] = useState<{ slug: string } | null>(null);
 
   useEffect(() => {
@@ -59,9 +64,10 @@ export default function ArticlePage(props: PageProps) {
       }
       setArticle(articleData);
 
-      // Get user email and fetch impact analysis
+      // Get user email and fetch impact analysis and podcast audio
       const userEmail = localStorage.getItem("user_email");
       if (userEmail && articleData.id) {
+        // Load impact analysis
         setLoadingImpact(true);
         try {
           const analysis = await getImpactAnalysis(articleData.id, userEmail);
@@ -70,6 +76,17 @@ export default function ArticlePage(props: PageProps) {
           console.error("Error loading impact analysis:", error);
         } finally {
           setLoadingImpact(false);
+        }
+
+        // Load podcast audio
+        setLoadingPodcast(true);
+        try {
+          const audio = await getPodcastAudio(articleData.id, userEmail);
+          setPodcastAudio(audio);
+        } catch (error) {
+          console.error("Error loading podcast audio:", error);
+        } finally {
+          setLoadingPodcast(false);
         }
       }
     };
@@ -191,6 +208,28 @@ export default function ArticlePage(props: PageProps) {
               <p className="text-xl text-foreground/80 mb-6 font-serif">
                 {article.summary}
               </p>
+
+              {/* Podcast Player Section */}
+              {podcastAudio && (
+                <div className="mb-6">
+                  <PodcastPlayer
+                    audioData={podcastAudio.audio_data}
+                    transcript={podcastAudio.transcript}
+                    durationEstimate={podcastAudio.duration_estimate}
+                  />
+                </div>
+              )}
+
+              {loadingPodcast && (
+                <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border border-purple-200 dark:border-purple-700 p-6 rounded-xl shadow-lg mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
+                    <span className="text-purple-800 dark:text-purple-200">
+                      Generating podcast audio...
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* Impact Analysis Section */}
               {impactAnalysis && (

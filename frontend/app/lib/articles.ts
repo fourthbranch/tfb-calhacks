@@ -148,6 +148,39 @@ export async function getImpactAnalysis(
   }
 }
 
+export async function getPodcastAudio(
+  articleId: string,
+  userEmail: string
+): Promise<{
+  audio_data: string;
+  transcript: string;
+  duration_estimate: number;
+} | null> {
+  try {
+    const res = await fetch(`${API_BASE}/articles/${articleId}/podcast-audio`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getApiKey()}`,
+      },
+      body: JSON.stringify({
+        user_email: userEmail,
+      }),
+    });
+
+    if (!res.ok) {
+      console.error("Failed to fetch podcast audio:", res.status);
+      return null;
+    }
+
+    const data = await res.json();
+    return data;
+  } catch (error) {
+    console.error("Error fetching podcast audio:", error);
+    return null;
+  }
+}
+
 export async function getArticlesForYou(
   userEmail: string | null
 ): Promise<Article[]> {

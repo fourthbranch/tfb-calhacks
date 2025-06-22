@@ -34,6 +34,7 @@ export default function OnboardingPage() {
   const [additionalInfo, setAdditionalInfo] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [additionalInfoError, setAdditionalInfoError] = useState("");
 
   useEffect(() => {
     const storedEmail = localStorage.getItem("user_email");
@@ -55,10 +56,41 @@ export default function OnboardingPage() {
     setLocations(locations.filter((_, i) => i !== index));
   };
 
+  const validateAdditionalInfo = (text: string) => {
+    if (!text.trim()) {
+      return "Please tell us more about yourself to personalize your news experience.";
+    }
+
+    const wordCount = text.trim().split(/\s+/).length;
+    if (wordCount < 10) {
+      return `Please provide at least 10 words. You currently have ${wordCount} word${
+        wordCount !== 1 ? "s" : ""
+      }.`;
+    }
+
+    return "";
+  };
+
+  const handleAdditionalInfoChange = (
+    e: React.ChangeEvent<HTMLTextAreaElement>
+  ) => {
+    const text = e.target.value;
+    setAdditionalInfo(text);
+    setAdditionalInfoError(validateAdditionalInfo(text));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
+
+    // Validate additional info
+    const additionalInfoValidation = validateAdditionalInfo(additionalInfo);
+    if (additionalInfoValidation) {
+      setAdditionalInfoError(additionalInfoValidation);
+      setIsLoading(false);
+      return;
+    }
 
     const writingStyle = [articleLength, writingTone, contentStyle];
 
@@ -296,24 +328,52 @@ export default function OnboardingPage() {
 
               <Separator />
 
-              {/* Section 5: Additional Info */}
+              {/* Section 5: Additional Info - Now Mandatory */}
               <div className="space-y-4">
                 <h3 className="text-xl font-semibold text-gray-800">
-                  5. Anything else to add? (optional)
+                  5. Tell us more about yourself (so news gets more
+                  personalized)
                 </h3>
+                <p className="text-sm text-gray-600 mb-3">
+                  Share details about your background, interests, profession, or
+                  life circumstances. This helps us provide personalized news
+                  insights and impact analysis.
+                  <span className="text-red-600 font-medium">
+                    {" "}
+                    Minimum 10 words required.
+                  </span>
+                </p>
                 <Textarea
                   id="additional-info"
-                  placeholder="Any other preferences or topics you're interested in?"
+                  placeholder="e.g., I'm a software engineer in San Francisco who's passionate about climate change and follows tech startups. I'm also a parent of two young children and interested in education policy..."
                   value={additionalInfo}
-                  onChange={(e) => setAdditionalInfo(e.target.value)}
+                  onChange={handleAdditionalInfoChange}
+                  className={`min-h-[120px] ${
+                    additionalInfoError
+                      ? "border-red-500 focus:border-red-500"
+                      : ""
+                  }`}
+                  required
                 />
+                {additionalInfoError && (
+                  <p className="text-red-600 text-sm mt-2">
+                    {additionalInfoError}
+                  </p>
+                )}
+                <div className="text-xs text-gray-500">
+                  Word count:{" "}
+                  {additionalInfo.trim()
+                    ? additionalInfo.trim().split(/\s+/).length
+                    : 0}
+                  /10 minimum
+                </div>
               </div>
 
               <div className="flex flex-col items-end pt-4">
                 <Button
                   type="submit"
                   size="lg"
-                  disabled={isLoading}
+                  disabled={isLoading || !!additionalInfoError}
                   className="w-full sm:w-auto"
                 >
                   {isLoading ? "Saving..." : "Finish Onboarding & View News"}
