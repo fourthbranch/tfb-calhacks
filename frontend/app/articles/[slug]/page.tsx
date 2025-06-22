@@ -88,23 +88,23 @@ export default async function ArticlePage(props: PageProps) {
 
                 {/* Source Information */}
                 {(block.sourceUrl || block.note) && (
-                  <div className="mt-2 bg-yellow-100 text-xs px-2 py-1 rounded shadow max-w-xs">
-                    {block.sourceUrl && (
-                      <a
-                        href={block.sourceUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="underline text-blue-600 block"
-                      >
-                        Source
-                      </a>
-                    )}
-                    {block.note && (
-                      <span className="italic text-gray-600 block">
-                        <span className="font-medium">AI reasoning:</span> {block.note}
-                      </span>
-                    )}
-                  </div>
+                  <div className="mt-2 bg-yellow-100 dark:bg-yellow-700 text-xs px-2 py-1 rounded shadow max-w-xs">
+                  {block.sourceUrl && (
+                    <a
+                      href={block.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline text-blue-600 dark:text-blue-400 block"
+                    >
+                      Source
+                    </a>
+                  )}
+                  {block.note && (
+                    <span className="italic text-gray-600 dark:text-gray-300 block">
+                      <span className="font-medium">AI reasoning:</span> {block.note}
+                    </span>
+                  )}
+                </div>
                 )}
               </div>
             ))}
@@ -138,23 +138,26 @@ export default async function ArticlePage(props: PageProps) {
               </h1>
 
               {/* Political Bias Section */}
-<div className="flex items-start gap-4 mb-6">
-  {["Left", "Neutral", "Right"].map((bias) => (
-    <div
-      key={bias}
-      className={`px-4 py-2 text-sm font-medium cursor-pointer ${
-        article.bias === bias.toLowerCase()
-          ? "bg-gray-700 text-white"
-          : "bg-gray-200 text-gray-600"
-      }`}
-      style={{
-        transition: "background-color 0.3s ease, color 0.3s ease",
-      }}
-    >
-      {bias}
-    </div>
-  ))}
-</div>
+            <div className="flex items-start gap-4 mb-6">
+              {["liberal", "neutral", "conservative"].map((bias) => {
+                console.log("Current article.bias:", article.bias); // Debugging output
+                return (
+                  <div
+                    key={bias}
+                    className={`px-4 py-2 text-sm font-medium cursor-pointer ${
+                      article.bias === bias.toLowerCase()
+                        ? "bg-gray-700 text-white"
+                        : "bg-gray-200 text-gray-600"
+                    }`}
+                    style={{
+                      transition: "background-color 0.3s ease, color 0.3s ease",
+                    }}
+                  >
+                    {bias}
+                  </div>
+                );
+              })}
+            </div>
   
               <p className="text-xl text-foreground/80 mb-6 font-serif">
                 {article.summary}
