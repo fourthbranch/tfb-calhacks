@@ -3,16 +3,15 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "./components/ui/Header";
 import Footer from "./components/ui/Footer";
-import FeaturedArticle from "./components/ui/FeaturedArticle";
 import ArticleGrid from "./components/sections/ArticleGrid";
 import NewsletterForm from "./components/ui/NewsletterForm";
-import { getArticlesForYou } from "./lib/articles";
+import { getArticlesForYou, type Article } from "./lib/articles";
 import Chatbox from "./components/sections/Chatbox";
 
 export default function Home() {
   const router = useRouter();
   const [hasEmail, setHasEmail] = useState<boolean | null>(null);
-  const [articles, setarticles] = useState<any[]>([]);
+  const [articles, setarticles] = useState<Article[]>([]);
 
   useEffect(() => {
     const email =

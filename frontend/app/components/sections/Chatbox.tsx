@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, FormEvent, useEffect, useRef } from "react";
 import { createAuthHeaders } from "../../lib/auth";
-import { Send, Bot, User, Loader, CheckCircle, ArrowRight } from 'lucide-react';
+import { Send, Bot, User, Loader, CheckCircle, ArrowRight } from "lucide-react";
 
 interface Message {
   text: string;
@@ -9,7 +9,12 @@ interface Message {
   articleId?: number;
 }
 
-const majorSteps = ["topic_generation", "report_planning", "research", "final_writing"];
+const majorSteps = [
+  "topic_generation",
+  "report_planning",
+  "research",
+  "final_writing",
+];
 const stepDisplayNames: { [key: string]: string } = {
   topic_generation: "Topic Generation",
   report_planning: "Report Planning",
@@ -18,16 +23,16 @@ const stepDisplayNames: { [key: string]: string } = {
 };
 
 interface MajorStepState {
-  status: 'pending' | 'in_progress' | 'completed';
+  status: "pending" | "in_progress" | "completed";
   message: string;
-  data?: any;
+  data?: Record<string, unknown>;
 }
 
 const initialPipelineState: Record<string, MajorStepState> = {
-  topic_generation: { status: 'pending', message: "Waiting to start..." },
-  report_planning: { status: 'pending', message: "Waiting for topic..." },
-  research: { status: 'pending', message: "Waiting for plan..." },
-  final_writing: { status: 'pending', message: "Waiting for research..." },
+  topic_generation: { status: "pending", message: "Waiting to start..." },
+  report_planning: { status: "pending", message: "Waiting for topic..." },
+  research: { status: "pending", message: "Waiting for plan..." },
+  final_writing: { status: "pending", message: "Waiting for research..." },
 };
 
 export default function Chatbox() {
@@ -44,7 +49,7 @@ export default function Chatbox() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-  
+
   const handleTopicClick = (topic: string) => {
     setInput(topic);
     // Directly submit the form
@@ -69,14 +74,11 @@ export default function Chatbox() {
       const API_URL = (
         process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
       ).replace(/\/$/, "");
-      const response = await fetch(
-        `${API_URL}/gen_news_stream`,
-        {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ user_request: currentInput, user_email }),
-        }
-      );
+      const response = await fetch(`${API_URL}/gen_news_stream`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ user_request: currentInput, user_email }),
+      });
 
       if (!response.body) return;
 
@@ -88,35 +90,51 @@ export default function Chatbox() {
         if (done) break;
 
         const chunk = decoder.decode(value);
-        const lines = chunk.split('\n\n');
+        const lines = chunk.split("\n\n");
 
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const jsonStr = line.replace('data: ', '');
+          if (line.startsWith("data: ")) {
+            const jsonStr = line.replace("data: ", "");
             try {
               const eventData = JSON.parse(jsonStr);
-              
-              setPipelineState(prev => {
+
+              setPipelineState((prev) => {
                 const newState = { ...prev };
                 const { step, status, message, data } = eventData;
 
                 if (newState[step]) {
-                  newState[step] = { ...newState[step], status, message, data: data || newState[step].data };
-                  
+                  newState[step] = {
+                    ...newState[step],
+                    status,
+                    message,
+                    data: data || newState[step].data,
+                  };
+
                   // If a step is completed, mark next as in_progress
-                  if (status === 'completed') {
+                  if (status === "completed") {
                     const currentStepIndex = majorSteps.indexOf(step);
                     if (currentStepIndex < majorSteps.length - 1) {
                       const nextStep = majorSteps[currentStepIndex + 1];
-                      newState[nextStep] = { ...newState[nextStep], status: 'in_progress', message: 'Starting...' };
+                      newState[nextStep] = {
+                        ...newState[nextStep],
+                        status: "in_progress",
+                        message: "Starting...",
+                      };
                     }
                   }
                 }
                 return newState;
               });
 
-              if (eventData.step === "final_writing" && eventData.status === "completed") {
-                const botMessage: Message = { text: "I've finished generating your article! You can view it now.", isUser: false, articleId: eventData.data.article_id };
+              if (
+                eventData.step === "final_writing" &&
+                eventData.status === "completed"
+              ) {
+                const botMessage: Message = {
+                  text: "I've finished generating your article! You can view it now.",
+                  isUser: false,
+                  articleId: eventData.data.article_id,
+                };
                 setMessages((prev) => [...prev, botMessage]);
               }
             } catch (error) {
@@ -127,38 +145,60 @@ export default function Chatbox() {
       }
     } catch (error) {
       console.error("Error fetching stream:", error);
-      const errorMessage: Message = { text: "Sorry, something went wrong while generating the article.", isUser: false };
+      const errorMessage: Message = {
+        text: "Sorry, something went wrong while generating the article.",
+        isUser: false,
+      };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
   };
-  
+
   const renderPipeline = () => {
     return (
       <div className="border border-gray-200 bg-gray-50 p-4 rounded-lg my-2 text-sm text-gray-700">
-        <h3 className="font-semibold mb-3 text-base text-black">Article Generation Progress</h3>
+        <h3 className="font-semibold mb-3 text-base text-black">
+          Article Generation Progress
+        </h3>
         <ul className="space-y-3">
           {majorSteps.map((step) => {
             const { status, message, data } = pipelineState[step];
             return (
               <li key={step} className="flex flex-col">
                 <div className="flex items-center">
-                  {status === 'completed' ? <CheckCircle className="w-4 h-4 text-green-500 mr-2" /> :
-                   status === 'in_progress' ? <Loader className="w-4 h-4 animate-spin text-blue-500 mr-2" /> :
-                   <div className="w-4 h-4 mr-2" />
-                  }
-                  <span className={`font-medium ${status !== 'pending' ? 'text-black' : 'text-gray-400'}`}>{stepDisplayNames[step]}</span>
+                  {status === "completed" ? (
+                    <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
+                  ) : status === "in_progress" ? (
+                    <Loader className="w-4 h-4 animate-spin text-blue-500 mr-2" />
+                  ) : (
+                    <div className="w-4 h-4 mr-2" />
+                  )}
+                  <span
+                    className={`font-medium ${
+                      status !== "pending" ? "text-black" : "text-gray-400"
+                    }`}
+                  >
+                    {stepDisplayNames[step]}
+                  </span>
                 </div>
                 <div className="pl-6 text-gray-500 text-xs italic mt-1">
                   {message}
-                  {data && data.sections && (
-                    <div className="text-xs mt-1 text-gray-600 flex flex-wrap gap-2">
-                       {data.sections.map((section: string) => (
-                          <span key={section} className="bg-gray-200 rounded-full px-2 py-0.5">{section}</span>
-                       ))}
-                    </div>
-                  )}
+                  {data &&
+                    typeof data === "object" &&
+                    "sections" in data &&
+                    Array.isArray(data.sections) && (
+                      <div className="text-xs mt-1 text-gray-600 flex flex-wrap gap-2">
+                        {(data.sections as string[]).map((section: string) => (
+                          <span
+                            key={section}
+                            className="bg-gray-200 rounded-full px-2 py-0.5"
+                          >
+                            {section}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                 </div>
               </li>
             );
@@ -170,28 +210,65 @@ export default function Chatbox() {
 
   return (
     <div className="bg-white w-full mx-auto rounded-xl shadow-lg border border-gray-200 flex flex-col max-h-[80vh] h-[75vh]">
-       <div className="p-4 border-b border-gray-200">
-        <h2 className="text-xl font-bold text-gray-800">News Article Generator</h2>
+      <div className="p-4 border-b border-gray-200">
+        <h2 className="text-xl font-bold text-gray-800">
+          News Article Generator
+        </h2>
         <p className="text-sm text-gray-500">
-            What news are you interested in today? You can start with a topic below or type your own.
+          What news are you interested in today? You can start with a topic
+          below or type your own.
         </p>
       </div>
-      <div className="flex-1 p-4 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
+      <div
+        className="flex-1 p-4 overflow-y-auto"
+        style={{ scrollbarWidth: "thin" }}
+      >
         <div className="space-y-4">
           {messages.length === 0 && !isLoading && (
             <div className="flex gap-2 flex-wrap">
-                <button onClick={() => handleTopicClick('israel-iran conflict')} className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm hover:bg-gray-200 transition-colors">israel-iran conflict</button>
-                <button onClick={() => handleTopicClick("trump's tariff policies")} className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm hover:bg-gray-200 transition-colors">trump's tariff policies</button>
-                <button onClick={() => handleTopicClick("US election 2024")} className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm hover:bg-gray-200 transition-colors">US election 2024</button>
-                <button onClick={() => handleTopicClick("AI's impact on the job market")} className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm hover:bg-gray-200 transition-colors">AI's impact on the job market</button>
-                <button onClick={() => handleTopicClick("Global climate change initiatives")} className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm hover:bg-gray-200 transition-colors">Global climate change initiatives</button>
+              <button
+                onClick={() => handleTopicClick("israel-iran conflict")}
+                className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm hover:bg-gray-200 transition-colors"
+              >
+                israel-iran conflict
+              </button>
+              <button
+                onClick={() => handleTopicClick("trump&apos;s tariff policies")}
+                className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm hover:bg-gray-200 transition-colors"
+              >
+                trump&apos;s tariff policies
+              </button>
+              <button
+                onClick={() => handleTopicClick("US election 2024")}
+                className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm hover:bg-gray-200 transition-colors"
+              >
+                US election 2024
+              </button>
+              <button
+                onClick={() =>
+                  handleTopicClick("AI&apos;s impact on the job market")
+                }
+                className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm hover:bg-gray-200 transition-colors"
+              >
+                AI&apos;s impact on the job market
+              </button>
+              <button
+                onClick={() =>
+                  handleTopicClick("Global climate change initiatives")
+                }
+                className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm hover:bg-gray-200 transition-colors"
+              >
+                Global climate change initiatives
+              </button>
             </div>
           )}
 
           {messages.map((message, index) => (
             <div
               key={index}
-              className={`flex ${message.isUser ? "justify-end" : "justify-start"}`}
+              className={`flex ${
+                message.isUser ? "justify-end" : "justify-start"
+              }`}
             >
               <div
                 className={`max-w-[80%] rounded-lg p-3 ${
@@ -211,70 +288,98 @@ export default function Chatbox() {
                   </span>
                 </div>
                 <p className="text-sm">{message.text}</p>
-                
+
                 {/* Show pipeline steps for AI messages */}
-                {!message.isUser && pipelineState && Object.keys(pipelineState).length > 0 && (
-                  <div className="mt-4 space-y-3">
-                    <div className="text-xs font-medium text-gray-600 mb-2">
-                      Generation Progress:
-                    </div>
-                    {majorSteps.map((step) => {
-                      const stepData = pipelineState[step];
-                      const isCompleted = stepData?.status === "completed";
-                      const isInProgress = stepData?.status === "in_progress";
+                {!message.isUser &&
+                  pipelineState &&
+                  Object.keys(pipelineState).length > 0 && (
+                    <div className="mt-4 space-y-3">
+                      <div className="text-xs font-medium text-gray-600 mb-2">
+                        Generation Progress:
+                      </div>
+                      {majorSteps.map((step) => {
+                        const stepData = pipelineState[step];
+                        const isCompleted = stepData?.status === "completed";
+                        const isInProgress = stepData?.status === "in_progress";
 
-                      const renderStepData = (stepId: string, data: any) => {
-                        if (!data || Object.keys(data).length === 0) return null;
-                      
-                        switch (stepId) {
-                          case 'report_planning':
-                            if (data.sections && Array.isArray(data.sections)) {
-                              return (
-                                <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded w-full">
-                                  <p className="font-medium mb-1 text-gray-700">Planned Sections:</p>
-                                  <ul className="list-disc list-inside text-gray-500">
-                                    {data.sections.map((section: string, i: number) => <li key={i}>{section}</li>)}
-                                  </ul>
-                                </div>
-                              );
-                            }
+                        const renderStepData = (
+                          stepId: string,
+                          data: Record<string, unknown>
+                        ) => {
+                          if (!data || Object.keys(data).length === 0)
                             return null;
-                          case 'topic_generation':
-                          case 'research':
-                          case 'final_writing':
-                          default:
-                            return null;
-                        }
-                      };
 
-                      const dataDisplay = isCompleted ? renderStepData(step, stepData.data) : null;
+                          switch (stepId) {
+                            case "report_planning":
+                              if (
+                                data.sections &&
+                                Array.isArray(data.sections)
+                              ) {
+                                return (
+                                  <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded w-full">
+                                    <p className="font-medium mb-1 text-gray-700">
+                                      Planned Sections:
+                                    </p>
+                                    <ul className="list-disc list-inside text-gray-500">
+                                      {(data.sections as string[]).map(
+                                        (section: string, i: number) => (
+                                          <li key={i}>{section}</li>
+                                        )
+                                      )}
+                                    </ul>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            case "topic_generation":
+                            case "research":
+                            case "final_writing":
+                            default:
+                              return null;
+                          }
+                        };
 
-                      return (
-                        <div key={step}>
-                          <div className="flex items-center gap-3">
-                            {isCompleted ? (
-                              <CheckCircle className="w-4 h-4 text-green-500" />
-                            ) : isInProgress ? (
-                              <Loader className="w-4 h-4 text-blue-500 animate-spin" />
-                            ) : (
-                              <div className="w-4 h-4 rounded-full border-2 border-gray-300" />
-                            )}
-                            <span className={`text-sm font-medium ${isCompleted ? "text-gray-800" : isInProgress ? "text-blue-600" : "text-gray-400"}`}>
-                              {stepDisplayNames[step]}
-                            </span>
-                             {isInProgress && stepData.message && (
-                              <span className="text-xs text-gray-500">
-                                {stepData.message}
+                        const dataDisplay =
+                          isCompleted && stepData.data
+                            ? renderStepData(step, stepData.data)
+                            : null;
+
+                        return (
+                          <div key={step}>
+                            <div className="flex items-center gap-3">
+                              {isCompleted ? (
+                                <CheckCircle className="w-4 h-4 text-green-500" />
+                              ) : isInProgress ? (
+                                <Loader className="w-4 h-4 text-blue-500 animate-spin" />
+                              ) : (
+                                <div className="w-4 h-4 rounded-full border-2 border-gray-300" />
+                              )}
+                              <span
+                                className={`text-sm font-medium ${
+                                  isCompleted
+                                    ? "text-gray-800"
+                                    : isInProgress
+                                    ? "text-blue-600"
+                                    : "text-gray-400"
+                                }`}
+                              >
+                                {stepDisplayNames[step]}
                               </span>
+                              {isInProgress && stepData.message && (
+                                <span className="text-xs text-gray-500">
+                                  {stepData.message}
+                                </span>
+                              )}
+                            </div>
+                            {dataDisplay && (
+                              <div className="pl-7 mt-1">{dataDisplay}</div>
                             )}
                           </div>
-                          {dataDisplay && <div className="pl-7 mt-1">{dataDisplay}</div>}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-                
+                        );
+                      })}
+                    </div>
+                  )}
+
                 {/* Show article link if available */}
                 {!message.isUser && message.articleId && (
                   <div className="mt-4 pt-3 border-t border-gray-200">

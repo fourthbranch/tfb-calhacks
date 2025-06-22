@@ -6,7 +6,11 @@ import Header from "../../components/ui/Header";
 import Footer from "../../components/ui/Footer";
 import ArticleGrid from "../../components/sections/ArticleGrid";
 import NewsletterForm from "../../components/ui/NewsletterForm";
-import { getArticlesExplore, getArticlesForYou } from "../../lib/articles";
+import {
+  getArticlesExplore,
+  getArticlesForYou,
+  type Article,
+} from "../../lib/articles";
 
 type PageProps = {
   params: Promise<{ category: string }>;
@@ -35,7 +39,7 @@ function formatCategoryName(category: string): string {
 
 export default function CategoryPage(props: PageProps) {
   const router = useRouter();
-  const [articles, setArticles] = useState<any[]>([]);
+  const [articles, setArticles] = useState<Article[]>([]);
   const [categoryName, setCategoryName] = useState("");
   const [hasEmail, setHasEmail] = useState<boolean | null>(null);
 
