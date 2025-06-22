@@ -55,13 +55,16 @@ export default function CategoryPage(props: PageProps) {
       setHasEmail(true);
       setCategoryName(formatCategoryName(params.category));
 
+      // Decode the category parameter for comparison
+      const decodedCategory = decodeURIComponent(params.category);
+
       let articlesData = [];
-      if (params.category === "foryou") {
+      if (decodedCategory.toLowerCase() === "for you") {
         articlesData = await getArticlesForYou(email);
-      } else if (params.category === "explore") {
+      } else if (decodedCategory.toLowerCase() === "explore") {
         articlesData = await getArticlesExplore(email);
       } else {
-        throw new Error(`Unknown category: ${params.category}`);
+        throw new Error(`Unknown category: ${decodedCategory}`);
       }
 
       setArticles(articlesData);
