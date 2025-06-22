@@ -56,9 +56,30 @@ class ArticleDetail(BaseModel):
 class SubscribeRequest(BaseModel):
     email: str
 
-
+      
 class GenNewsWithRequestRequest(BaseModel):
     user_request: str
+
+      
+class UserCheckRequest(BaseModel):
+    email: str
+
+
+class UserCreateRequest(BaseModel):
+    email: str
+    preferred_topics: Optional[List[str]] = None
+    locations: Optional[List[str]] = None
+    political_leaning: Optional[str] = None
+    additional_info: Optional[str] = None
+    preferred_writing_style: Optional[List[str]] = None
+
+
+class UserUpdateRequest(BaseModel):
+    preferred_topics: Optional[List[str]] = None
+    locations: Optional[List[str]] = None
+    political_leaning: Optional[str] = None
+    additional_info: Optional[str] = None
+    preferred_writing_style: Optional[List[str]] = None
 
 
 @app.get("/articles", response_model=List[ArticleListItem])
@@ -123,7 +144,6 @@ def subscribe(request: SubscribeRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail="Failed to subscribe")
 
-
 @app.get("/gen_news")
 def gen_news() -> Dict[str, Any]:
     """Generate a topic for a news article"""
@@ -141,3 +161,82 @@ def gen_news_with_request(request: GenNewsWithRequestRequest) -> Dict[str, Any]:
         if article_id != -1:
             three_article_ids.append(article_id)
     return {"article_ids": three_article_ids}
+
+  
+@app.post("/users/check")
+def check_user(request: UserCheckRequest):
+    """Check if a user exists by email"""
+    try:
+        res = supabase.table("users").select("id, email").eq("email", request.email).execute()
+        if res.data and len(res.data) > 0:
+            user = res.data[0]
+            return {
+                "exists": True,
+                "onboarding_completed": True,  # Assume completed if user exists
+                "user_id": user["id"]
+            }
+        else:
+            return {"exists": False, "onboarding_completed": False}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to check user: {str(e)}")
+
+
+@app.post("/users/create")
+def create_user(request: UserCreateRequest):
+    """Create a new user"""
+    try:
+        # Check if user already exists
+        existing = supabase.table("users").select("id").eq("email", request.email).execute()
+        if existing.data and len(existing.data) > 0:
+            raise HTTPException(status_code=400, detail="User already exists")
+
+        # Create new user
+        user_data = {
+            "email": request.email,
+            "preferred_topics": request.preferred_topics or [],
+            "locations": request.locations,
+            "political_leaning": request.political_leaning,
+            "additional_info": request.additional_info,
+            "preferred_writing_style": request.preferred_writing_style
+        }
+        
+        res = supabase.table("users").insert(user_data).execute()
+        if res.data and len(res.data) > 0:
+            return {
+                "message": "User created successfully",
+                "user_id": res.data[0]["id"]
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to create user")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create user: {str(e)}")
+
+
+@app.put("/users/{user_id}")
+def update_user(user_id: int, request: UserUpdateRequest):
+    """Update user preferences"""
+    try:
+        update_data = {}
+        if request.preferred_topics is not None:
+            update_data["preferred_topics"] = request.preferred_topics
+        if request.locations is not None:
+            update_data["locations"] = request.locations
+        if request.political_leaning is not None:
+            update_data["political_leaning"] = request.political_leaning
+        if request.additional_info is not None:
+            update_data["additional_info"] = request.additional_info
+        if request.preferred_writing_style is not None:
+            update_data["preferred_writing_style"] = request.preferred_writing_style
+        
+        res = supabase.table("users").update(update_data).eq("id", user_id).execute()
+        if res.data and len(res.data) > 0:
+            return {"message": "User updated successfully"}
+        else:
+            raise HTTPException(status_code=404, detail="User not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update user: {str(e)}")
+
