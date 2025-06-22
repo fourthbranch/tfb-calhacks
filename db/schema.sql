@@ -16,17 +16,18 @@ CREATE TABLE reports (
 );
 
 CREATE TABLE articles_new (
-    id INTEGER PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
+    report_id INTEGER NOT NULL,
     title TEXT NOT NULL,
     content TEXT NOT NULL,
     summary TEXT,
     relevant_topics TEXT[] NOT NULL,
     preferred_writing_style TEXT[3] NOT NULL,
-    bias TEXT,
     topic_bias TEXT,
+    bias TEXT,
     opposite_view TEXT,
     CONSTRAINT fk_report
-        FOREIGN KEY(id)
+        FOREIGN KEY(report_id)
         REFERENCES reports(id)
         ON DELETE CASCADE
 );

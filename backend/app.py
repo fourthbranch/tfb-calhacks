@@ -13,9 +13,11 @@ This module handles FastAPI app initialization and configuration.
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from .db import supabase
 from pydantic import BaseModel
+from backend.agent import topic_generator
+
 
 app = FastAPI(title="The Fourth Branch API")
 
@@ -116,3 +118,11 @@ def subscribe(request: SubscribeRequest):
         return {"message": "Successfully subscribed"}
     except Exception as e:
         raise HTTPException(status_code=500, detail="Failed to subscribe")
+
+
+@app.get("/gen_news")
+def gen_news() -> Dict[str, Any]:
+    """Generate a topic for a news article"""
+    for _ in range(1):
+        topic_generator()
+    return {"message": "Generated news article"}

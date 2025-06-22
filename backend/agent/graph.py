@@ -8,11 +8,6 @@ from langgraph.constants import Send
 from langgraph.graph import START, END, StateGraph
 from langgraph.types import interrupt, Command
 
-
-# # Add the parent directory to sys.path
-# sys.path.append(os.path.abspath(
-#     os.path.join(os.path.dirname(__file__), "../fourthbranch")))
-
 from backend.agent.state import (
     ReportStateInput,
     ReportStateOutput,
@@ -41,6 +36,7 @@ from backend.agent.utils import (
 )
 
 # Nodes --
+
 
 async def generate_report_plan(state: ReportState, config: RunnableConfig):
     """Generate the initial report plan with sections.

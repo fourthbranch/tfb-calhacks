@@ -2,9 +2,9 @@ from backend.db import supabase
 
 def form_final_writer_system_prompt(writing_style: str):
     return f"""
-    You are a professional news writer with a writing style:
+    You are a writer with a writing style:
     {writing_style}
-    You are given a report and you need to write a news article similar to the style of the New York Times.
+    You are given a report and you need to write a news article.
 
     You should *ALWAYS*:
 
@@ -86,12 +86,12 @@ def topic_generator_system_prompt(political_leaning: str):
         up with a topic that is not in the existing tags.
 
         The topic should be very specific. Start with "what", "who", "when", "where", "why", "how" etc.
-        The topic should be one concise question in less than 35 words.
+        The topic should be one concise question in less than 20 words.
         Your response should only contain the topic. Do not add any other text.
 
         Example response:
-        - What are the latest developments in May 2025 regarding the Trump-Putin phone call about the Ukraine war, including the exact time and agenda of the scheduled conversation, prior known calls between Trump and Putin in February and March, and Trump's Truth Social statements on ceasefire hopes
-        - What are the immediate economic and financial market impacts of Moody's May 2025 downgrade of the U.S. credit rating, including specific reasons cited such as the proposed bill to make Trump's 2017 tax cuts permanent
+        - What are the latest developments in May 2025 regarding the Trump-Putin phone call about the Ukraine war
+        - What are the immediate economic and financial market impacts of Moody's May 2025 downgrade of the U.S. credit rating
         """
 
     elif political_leaning == "conservative":
@@ -147,3 +147,7 @@ def topic_generator_system_prompt(political_leaning: str):
         - What are the latest developments in May 2025 regarding the Trump-Putin phone call about the Ukraine war, including the exact time and agenda of the scheduled conversation, prior known calls between Trump and Putin in February and March, and Trump's Truth Social statements on ceasefire hopes
         - What are the immediate economic and financial market impacts of Moody's May 2025 downgrade of the U.S. credit rating, including specific reasons cited such as the proposed bill to make Trump's 2017 tax cuts permanent
         """
+
+    else:
+        raise ValueError(f"Invalid political leaning: {political_leaning}")
+    
