@@ -17,6 +17,7 @@ import os
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
+
 async def get_api_key(credentials: HTTPAuthorizationCredentials = Security(bearer_scheme)) -> str:
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise HTTPException(
@@ -24,7 +25,7 @@ async def get_api_key(credentials: HTTPAuthorizationCredentials = Security(beare
             detail="Authorization header missing or not using Bearer scheme"
         )
 
-    correct_token = os.getenv("NEXT_PUBLIC_API_KEY")
+    correct_token = os.getenv("API_KEY")
     if correct_token is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

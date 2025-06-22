@@ -1,6 +1,6 @@
 import React from "react";
 import ArticleCard from "../ui/ArticleCard";
-import { Article } from "@/app/lib/articles";
+import { Article } from "../../lib/articles";
 
 interface ArticleGridProps {
   articles: Article[];

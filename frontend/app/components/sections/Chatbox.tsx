@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { Input } from "../ui/Input";
 import { Textarea } from "../ui/Textarea";
 import Button from "../ui/Button";
 import { getArticleBySlug } from "../../lib/articles";

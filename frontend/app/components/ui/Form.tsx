@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import Input from "./Input";
+import { Input } from "./Input";
 import Button from "./Button";
 
 interface FormData {
@@ -118,27 +118,20 @@ export default function Form() {
 
       <div className="space-y-4">
         <Input
-          label="Email"
           type="email"
           name="email"
           placeholder="your@email.com"
           value={formData.email}
           onChange={handleChange}
-          error={errors.email}
-          fullWidth
           required
         />
 
         <Input
-          label="Password"
           type="password"
           name="password"
           placeholder="••••••••"
           value={formData.password}
           onChange={handleChange}
-          error={errors.password}
-          helperText="Must be at least 6 characters"
-          fullWidth
           required
         />
 

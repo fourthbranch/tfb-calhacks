@@ -2,15 +2,6 @@ import { createAuthHeaders } from "./auth";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-// Get API key from environment variable
-const getApiKey = (): string => {
-  const apiKey = process.env.NEXT_PUBLIC_API_KEY;
-  if (!apiKey) {
-    throw new Error("API_KEY environment variable is not set");
-  }
-  return apiKey;
-};
-
 export interface UserCheckResponse {
   exists: boolean;
   onboarding_completed: boolean;
