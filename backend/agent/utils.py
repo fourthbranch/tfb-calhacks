@@ -1,10 +1,8 @@
-from langsmith import traceable
 from langchain_core.tools import tool
 from langchain_community.utilities.pubmed import PubMedAPIWrapper
 from langchain_community.retrievers import ArxivRetriever
 from markdownify import markdownify
 from bs4 import BeautifulSoup
-from duckduckgo_search import DDGS
 from tavily import AsyncTavilyClient
 from linkup import LinkupClient
 from exa_py import Exa
@@ -142,7 +140,6 @@ Content:
     return formatted_str
 
 
-@traceable
 async def tavily_search_async(search_queries, max_results: int = 5, topic: str = "general", include_raw_content: bool = True):
     """
     Performs concurrent web searches with the Tavily API
@@ -186,7 +183,6 @@ async def tavily_search_async(search_queries, max_results: int = 5, topic: str =
     return search_docs
 
 
-@traceable
 def perplexity_search(search_queries):
     """Search the web using the Perplexity API.
 
@@ -282,7 +278,6 @@ def perplexity_search(search_queries):
     return search_docs
 
 
-@traceable
 async def exa_search(search_queries, max_characters: Optional[int] = None, num_results=5,
                      include_domains: Optional[List[str]] = None,
                      exclude_domains: Optional[List[str]] = None,
@@ -488,7 +483,6 @@ async def exa_search(search_queries, max_characters: Optional[int] = None, num_r
     return search_docs
 
 
-@traceable
 async def arxiv_search_async(search_queries, load_max_docs=5, get_full_documents=True, load_all_available_meta=True):
     """
     Performs concurrent searches on arXiv using the ArxivRetriever.
@@ -651,7 +645,6 @@ async def arxiv_search_async(search_queries, load_max_docs=5, get_full_documents
     return search_docs
 
 
-@traceable
 async def pubmed_search_async(search_queries, top_k_results=5, email=None, api_key=None, doc_content_chars_max=4000):
     """
     Performs concurrent searches on PubMed using the PubMedAPIWrapper.
@@ -801,7 +794,6 @@ async def pubmed_search_async(search_queries, top_k_results=5, email=None, api_k
     return search_docs
 
 
-@traceable
 async def linkup_search(search_queries, depth: Optional[str] = "standard"):
     """
     Performs concurrent web searches using the Linkup API.
@@ -849,7 +841,6 @@ async def linkup_search(search_queries, depth: Optional[str] = "standard"):
     return search_results
 
 
-@traceable
 async def google_search_async(search_queries: Union[str, List[str]], max_results: int = 5, include_raw_content: bool = True):
     """
     Performs concurrent web searches using Google.
@@ -1187,126 +1178,6 @@ async def scrape_pages(titles: List[str], urls: List[str]) -> str:
 
 
 @tool
-async def duckduckgo_search(search_queries: List[str]):
-    """Perform searches using DuckDuckGo with retry logic to handle rate limits
-
-    Args:
-        search_queries (List[str]): List of search queries to process
-
-    Returns:
-        List[dict]: List of search results
-    """
-
-    async def process_single_query(query):
-        # Execute synchronous search in the event loop's thread pool
-        loop = asyncio.get_event_loop()
-
-        def perform_search():
-            max_retries = 3
-            retry_count = 0
-            backoff_factor = 2.0
-            last_exception = None
-
-            while retry_count <= max_retries:
-                try:
-                    results = []
-                    with DDGS() as ddgs:
-                        # Change query slightly and add delay between retries
-                        if retry_count > 0:
-                            # Random delay with exponential backoff
-                            delay = backoff_factor ** retry_count + random.random()
-                            print(
-                                f"Retry {retry_count}/{max_retries} for query '{query}' after {delay:.2f}s delay")
-                            time.sleep(delay)
-
-                            # Add a random element to the query to bypass caching/rate limits
-                            modifiers = ['about', 'info', 'guide',
-                                         'overview', 'details', 'explained']
-                            modified_query = f"{query} {random.choice(modifiers)}"
-                        else:
-                            modified_query = query
-
-                        # Execute search
-                        ddg_results = list(
-                            ddgs.text(modified_query, max_results=5))
-
-                        # Format results
-                        for i, result in enumerate(ddg_results):
-                            results.append({
-                                'title': result.get('title', ''),
-                                'url': result.get('href', ''),
-                                'content': result.get('body', ''),
-                                # Simple scoring mechanism
-                                'score': 1.0 - (i * 0.1),
-                                'raw_content': result.get('body', '')
-                            })
-
-                        # Return successful results
-                        return {
-                            'query': query,
-                            'follow_up_questions': None,
-                            'answer': None,
-                            'images': [],
-                            'results': results
-                        }
-                except Exception as e:
-                    # Store the exception and retry
-                    last_exception = e
-                    retry_count += 1
-                    print(
-                        f"DuckDuckGo search error: {str(e)}. Retrying {retry_count}/{max_retries}")
-
-                    # If not a rate limit error, don't retry
-                    if "Ratelimit" not in str(e) and retry_count >= 1:
-                        print(
-                            f"Non-rate limit error, stopping retries: {str(e)}")
-                        break
-
-            # If we reach here, all retries failed
-            print(
-                f"All retries failed for query '{query}': {str(last_exception)}")
-            # Return empty results but with query info preserved
-            return {
-                'query': query,
-                'follow_up_questions': None,
-                'answer': None,
-                'images': [],
-                'results': [],
-                'error': str(last_exception)
-            }
-
-        return await loop.run_in_executor(None, perform_search)
-
-    # Process queries with delay between them to reduce rate limiting
-    search_docs = []
-    urls = []
-    titles = []
-    for i, query in enumerate(search_queries):
-        # Add delay between queries (except first one)
-        if i > 0:
-            delay = 2.0 + random.random() * 2.0  # Random delay 2-4 seconds
-            await asyncio.sleep(delay)
-
-        # Process the query
-        result = await process_single_query(query)
-        search_docs.append(result)
-
-        # Safely extract URLs and titles from results, handling empty result cases
-        if result['results'] and len(result['results']) > 0:
-            for res in result['results']:
-                if 'url' in res and 'title' in res:
-                    urls.append(res['url'])
-                    titles.append(res['title'])
-
-    # If we got any valid URLs, scrape the pages
-    if urls:
-        return await scrape_pages(titles, urls)
-    else:
-        # Return a formatted error message if no valid URLs were found
-        return "No valid search results found. Please try different search queries or use a different search API."
-
-
-@tool
 async def tavily_search(queries: List[str]) -> str:
     """
     Fetches results from Tavily search API.
@@ -1369,9 +1240,6 @@ async def select_and_execute_search(search_api: str, query_list: list[str], para
     if search_api == "tavily":
         # Tavily search tool used with both workflow and agent
         return await tavily_search.ainvoke({'queries': query_list}, **params_to_pass)
-    elif search_api == "duckduckgo":
-        # DuckDuckGo search tool used with both workflow and agent
-        return await duckduckgo_search.ainvoke({'search_queries': query_list})
     elif search_api == "perplexity":
         search_results = perplexity_search(query_list, **params_to_pass)
         return deduplicate_and_format_sources(search_results, max_tokens_per_source=4000)

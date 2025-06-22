@@ -128,8 +128,8 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <LandingHeader />
-      <main className="container mx-auto px-4 py-12 sm:py-16">
+      <LandingHeader variant="light" />
+      <main className="container mx-auto px-4 py-12 sm:py-16 mt-20">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
