@@ -19,7 +19,7 @@ export default function Header() {
   const [pageView, setPageView] = useState<number | null>(null);
 
   useEffect(() => {
-    let baseUrl = process.env.NEXT_PUBLIC_API_BASE;
+    let baseUrl = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
     if (!baseUrl && typeof window !== "undefined") {
       baseUrl = window.location.origin.replace(/\/$/, "");
     }

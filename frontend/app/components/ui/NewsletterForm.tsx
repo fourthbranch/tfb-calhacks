@@ -25,7 +25,7 @@ export default function NewsletterForm() {
               .value;
 
             try {
-              const baseUrl = process.env.NEXT_PUBLIC_API_BASE || "";
+              const baseUrl = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
               const url = `${baseUrl}/subscribe`.replace(/([^:]\/)\/+/g, "$1");
               const response = await fetch(url, {
                 method: "POST",

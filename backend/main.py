@@ -22,7 +22,7 @@ from backend.db import supabase
 
 
 @app.get("/")
-def root(api_key: str = Depends(get_api_key)) -> Dict[str, Any]:
+def root() -> Dict[str, Any]:
     """Root endpoint for the API"""
     return {"message": "Hello, World!"}
 
