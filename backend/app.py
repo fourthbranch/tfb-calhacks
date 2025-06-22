@@ -11,38 +11,16 @@
 This module handles FastAPI app initialization and configuration.
 """
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
 
 app = FastAPI(title="The Fourth Branch API")
 
-# Add CORS middleware with specific origins
+# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",  # Local development
-        "https://fourthbranch.vercel.app",  # Production frontend
-        "https://fourthbranch-backend.vercel.app",  # Production backend
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
-    expose_headers=["*"],
+    allow_methods=["*"],  # Allow all methods
+    allow_headers=["*"],  # Allow all headers
 )
-
-
-@app.middleware("http")
-async def handle_preflight(request: Request, call_next):
-    """Handle OPTIONS preflight requests without authentication"""
-    if request.method == "OPTIONS":
-        return Response(
-            status_code=200,
-            headers={
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-                "Access-Control-Allow-Headers": "*",
-                "Access-Control-Allow-Credentials": "true",
-            }
-        )
-    return await call_next(request)
