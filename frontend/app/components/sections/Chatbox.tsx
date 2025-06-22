@@ -209,7 +209,7 @@ export default function Chatbox() {
   };
 
   return (
-    <div className="bg-white w-full mx-auto rounded-xl shadow-lg border border-gray-200 flex flex-col max-h-[80vh] h-[75vh]">
+    <div className="bg-white w-full mx-auto rounded-xl shadow-lg border border-gray-200 flex flex-col max-h-[80vh] h-[50vh]">
       <div className="p-4 border-b border-gray-200">
         <h2 className="text-xl font-bold text-gray-800">
           News Article Generator
