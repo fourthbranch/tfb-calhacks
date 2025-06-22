@@ -206,7 +206,7 @@ def get_article(article_id: int, api_key: str = Depends(get_api_key)):
     else:
         res.data["created_at"] = None  # Handle case where report is not found
 
-   return res.data
+    return res.data
 
 
 @app.get("/metrics/page_views")

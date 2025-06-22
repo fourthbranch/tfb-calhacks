@@ -7,17 +7,14 @@ import FeaturedArticle from "./components/ui/FeaturedArticle";
 import ArticleGrid from "./components/sections/ArticleGrid";
 import NewsletterForm from "./components/ui/NewsletterForm";
 import {
-  getFeaturedArticles,
-  getRecentArticles,
-  type Article,
+  getArticlesForYou
 } from "./lib/articles";
 import Chatbox from "./components/sections/Chatbox";
 
 export default function Home() {
   const router = useRouter();
   const [hasEmail, setHasEmail] = useState<boolean | null>(null);
-  const [featuredArticles, setFeaturedArticles] = useState<Article[]>([]);
-  const [recentArticles, setRecentArticles] = useState<Article[]>([]);
+  const [articles, setarticles] = useState<any[]>([]);
 
   useEffect(() => {
     const email =
@@ -27,8 +24,7 @@ export default function Home() {
     } else {
       setHasEmail(true);
       (async () => {
-        setFeaturedArticles(await getFeaturedArticles());
-        setRecentArticles(await getRecentArticles());
+        setarticles(await getArticlesForYou(email));
       })();
     }
   }, [router]);
@@ -40,12 +36,7 @@ export default function Home() {
     <div className="min-h-screen bg-white">
       <Header />
       <main className="container mx-auto px-4 py-8">
-        <Chatbox />
-        {featuredArticles.length > 0 && (
-          <FeaturedArticle article={featuredArticles[0]} />
-        )}
-        {recentArticles.length > 0 && <ArticleGrid articles={recentArticles} />}
-        <NewsletterForm />
+        {articles.length > 0 && <ArticleGrid articles={articles} />}
       </main>
       <Footer />
     </div>

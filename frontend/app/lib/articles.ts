@@ -56,7 +56,7 @@ export async function getAllArticlesDisplay(userEmail: string | null): Promise<{
 
   const data = await res.json();
   // Map backend data to frontend Article structure
-  const foryou = data.user_preferred.map(Add commentMore actions
+  const foryou = data.user_preferred.map(
     (item: BackendArticle): Article => ({
       id: item.id || "",
       slug: item.slug || item.id?.toString() || "",
@@ -87,7 +87,7 @@ export async function getAllArticlesDisplay(userEmail: string | null): Promise<{
       categories: item.relevant_topics || ["US"],
       date: item.created_at || "",
       featured: false,
-      opposite_view: item.opposite_view || "",Add commentMore actions
+      opposite_view: item.opposite_view || "",
       bias: item.bias || "",
     })
   );
@@ -120,45 +120,20 @@ export async function getArticleBySlug(
   };
 }
 
-export async function getArticlesByCategory(
-  category: string
-): Promise<Article[]> {
-  const all = await getAllArticles();
 
-  // log categories
-  console.log("categories:", all[0].categories);
-
-  return all.filter((article) =>
-    article.categories.some(
-      (cat) => cat.toLowerCase() === category.toLowerCase()
-    )
-  );
+export async function getArticlesForYou(userEmail: string | null): Promise<Article[]> {
+  console.log("inside getArticlesForYou")
+  const all = await getAllArticlesDisplay(userEmail);
+  const articles = all.foryou
+  // Debugging output
+  console.log("Articles for you:", articles);
+  return articles;
 }
 
-export async function getFeaturedArticles(): Promise<Article[]> {
-  // For now, just return the first 2 as featured
-  const all = await getAllArticles();
-  return all.slice(0, 3);
+
+export async function getArticlesExplore(userEmail: string | null): Promise<Article[]> {
+  const all = await getAllArticlesDisplay(userEmail);
+  const articles = all.explore
+  console.log("Explore articles:", articles);
+  return articles;
 }
-
-export async function getRecentArticles(count: number = 4): Promise<Article[]> {
-  const all = await getAllArticles();
-  return all.slice(0, count);
-}
-
-// export function getRelatedArticles(
-//   currentSlug: string,
-//   count: number = 3
-// ): Article[] {
-//   const currentArticle = getArticleBySlug(currentSlug);
-//   if (!currentArticle) return [];
-
-//   return articles
-//     .filter(
-//       (article) =>
-//         article.slug !== currentSlug &&
-//         (article.category === currentArticle.category ||
-//           article.title.includes(currentArticle.title.substring(0, 10)))
-//     )
-//     .slice(0, count);
-// }
