@@ -87,28 +87,49 @@ class UserUpdateRequest(BaseModel):
 
 @app.get("/articles", response_model=List[ArticleListItem])
 def list_articles():
-    # Fetch articles from articles_new
-    articles_res = supabase.table("articles_new").select(
-        "id, title, summary, relevant_topics, bias,   opposite_view, report_id"
-    ).execute()
+    # Fetch articles with created_at using a JOIN query
+    try:
+        articles_res = supabase.table("articles_new").select(
+            "id, title, summary, relevant_topics, bias, opposite_view, report_id, reports!inner(created_at)"
+        ).execute()
 
-    if not articles_res.data:
+        if not articles_res.data:
+            return []
+
+        # Transform the data to flatten the nested reports structure
+        articles_with_created_at = []
+        for article in articles_res.data:
+            # Extract created_at from the nested reports object
+            created_at = article.get("reports", {}).get(
+                "created_at") if article.get("reports") else None
+
+            # Create the flattened article object
+            article_item = {
+                "id": article["id"],
+                "title": article["title"],
+                "summary": article.get("summary"),
+                "relevant_topics": article.get("relevant_topics"),
+                "bias": article.get("bias"),
+                "opposite_view": article.get("opposite_view"),
+                "created_at": created_at
+            }
+            articles_with_created_at.append(article_item)
+
+        # Sort articles by created_at in descending order
+        articles_with_created_at.sort(
+            key=lambda x: x["created_at"] or "", reverse=True)
+
+        # Print the first article for debugging
+        if articles_with_created_at:
+            print(
+                f"First article with created_at: {articles_with_created_at[0]}")
+
+        return articles_with_created_at
+
+    except Exception as e:
+        print(f"Error fetching articles: {e}")
+        # Return empty list on error to prevent 500 errors
         return []
-
-    # Fetch created_at for each article using report_id
-    articles_with_created_at = []
-    for article in articles_res.data:
-        report_res = supabase.table("reports").select("created_at").eq("id", article["report_id"]).single().execute()
-        if report_res.data:
-            article["created_at"] = report_res.data["created_at"]
-        else:
-            article["created_at"] = None  # Handle case where report is not found
-        articles_with_created_at.append(article)
-
-    # Sort articles by created_at in descending order
-    articles_with_created_at.sort(key=lambda x: x["created_at"], reverse=True)
-
-    return articles_with_created_at
 
 
 @app.get("/articles/{article_id}", response_model=ArticleDetail)
@@ -125,17 +146,37 @@ def get_article(article_id: int):
         supabase.table("global_metrics").update(
             {"value": current + 1}).eq("key", "total_page_views").execute()
 
-    res = supabase.table("articles_new").select(
-        "*", count="exact").eq("id", article_id).single().execute()
-    if not res.data:
-        raise HTTPException(status_code=404, detail="Article not found")
-    report_res = supabase.table("reports").select("created_at").eq("id", res.data["report_id"]).single().execute()
-    if report_res.data:
-        res.data["created_at"] = report_res.data["created_at"]
-    else:
-        res.data["created_at"] = None  # Handle case where report is not found
+    try:
+        # Fetch article with created_at using a JOIN query
+        res = supabase.table("articles_new").select(
+            "*, reports!inner(created_at)"
+        ).eq("id", article_id).single().execute()
 
-    return res.data
+        if not res.data:
+            raise HTTPException(status_code=404, detail="Article not found")
+
+        # Extract created_at from the nested reports object
+        created_at = res.data.get("reports", {}).get(
+            "created_at") if res.data.get("reports") else None
+
+        # Create the article detail object
+        article_detail = {
+            "id": res.data["id"],
+            "title": res.data["title"],
+            "summary": res.data.get("summary"),
+            "content": res.data["content"],
+            "created_at": created_at,
+            "metadata": res.data.get("metadata"),
+            "relevant_topics": res.data.get("relevant_topics"),
+            "bias": res.data.get("bias"),
+            "opposite_view": res.data.get("opposite_view")
+        }
+
+        return article_detail
+
+    except Exception as e:
+        print(f"Error fetching article {article_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch article")
 
 
 @app.get("/metrics/page_views")
@@ -168,6 +209,7 @@ def subscribe(request: SubscribeRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail="Failed to subscribe")
 
+
 @app.get("/gen_news")
 def gen_news() -> Dict[str, Any]:
     """Generate a topic for a news article"""
@@ -180,25 +222,30 @@ def gen_news() -> Dict[str, Any]:
 def gen_news_with_request(request: GenNewsWithRequestRequest) -> Dict[str, Any]:
     """Generate a topic for a news article with a user request and preferences"""
     article_ids = []
-    
+
     # Try to find user by email for personalization
     user_id = -1  # Default to anonymous
     if request.user_email:
         try:
-            user_res = supabase.table("users").select("id").eq("email", request.user_email).execute()
+            user_res = supabase.table("users").select(
+                "id").eq("email", request.user_email).execute()
             if user_res.data and len(user_res.data) > 0:
                 user_id = user_res.data[0]["id"]
                 print(f"Found user {user_id} for email {request.user_email}")
             else:
-                print(f"No user found for email {request.user_email}, using anonymous mode")
+                print(
+                    f"No user found for email {request.user_email}, using anonymous mode")
         except Exception as e:
             print(f"Error looking up user: {e}, using anonymous mode")
-    
+
     for _ in range(1):
-        article_id = topic_generator(user_id=user_id, user_request=request.user_request)
+        article_id = topic_generator(
+            user_id=user_id, user_request=request.user_request)
+        article_id = topic_generator(
+            user_id=user_id, user_request=request.user_request)
         if article_id != -1:
             article_ids.append(article_id)
-    
+
     return {"article_ids": article_ids}
 
 
@@ -206,7 +253,8 @@ def gen_news_with_request(request: GenNewsWithRequestRequest) -> Dict[str, Any]:
 def check_user(request: UserCheckRequest):
     """Check if a user exists by email"""
     try:
-        res = supabase.table("users").select("id, email").eq("email", request.email).execute()
+        res = supabase.table("users").select(
+            "id, email").eq("email", request.email).execute()
         if res.data and len(res.data) > 0:
             user = res.data[0]
             return {
@@ -217,7 +265,8 @@ def check_user(request: UserCheckRequest):
         else:
             return {"exists": False, "onboarding_completed": False}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to check user: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to check user: {str(e)}")
 
 
 @app.post("/users/create")
@@ -225,7 +274,8 @@ def create_user(request: UserCreateRequest):
     """Create a new user"""
     try:
         # Check if user already exists
-        existing = supabase.table("users").select("id").eq("email", request.email).execute()
+        existing = supabase.table("users").select(
+            "id").eq("email", request.email).execute()
         if existing.data and len(existing.data) > 0:
             raise HTTPException(status_code=400, detail="User already exists")
 
@@ -246,11 +296,13 @@ def create_user(request: UserCreateRequest):
                 "user_id": res.data[0]["id"]
             }
         else:
-            raise HTTPException(status_code=500, detail="Failed to create user")
+            raise HTTPException(
+                status_code=500, detail="Failed to create user")
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to create user: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to create user: {str(e)}")
 
 
 @app.put("/users/{user_id}")
@@ -269,7 +321,8 @@ def update_user(user_id: int, request: UserUpdateRequest):
         if request.preferred_writing_style is not None:
             update_data["preferred_writing_style"] = request.preferred_writing_style
 
-        res = supabase.table("users").update(update_data).eq("id", user_id).execute()
+        res = supabase.table("users").update(
+            update_data).eq("id", user_id).execute()
         if res.data and len(res.data) > 0:
             return {"message": "User updated successfully"}
         else:
@@ -277,5 +330,5 @@ def update_user(user_id: int, request: UserUpdateRequest):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to update user: {str(e)}")
-
+        raise HTTPException(
+            status_code=500, detail=f"Failed to update user: {str(e)}")
