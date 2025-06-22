@@ -4,10 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { createAuthHeadersWithAccept } from "../../lib/auth";
 
-const categories = [
-  "ForYou",
-  "Explore",
-];
+const categories = ["For You", "Explore"];
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);

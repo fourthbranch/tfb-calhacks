@@ -1,4 +1,7 @@
-import React from "react";
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Header from "../../components/ui/Header";
 import Footer from "../../components/ui/Footer";
 import ArticleGrid from "../../components/sections/ArticleGrid";
@@ -6,12 +9,17 @@ import NewsletterForm from "../../components/ui/NewsletterForm";
 import { getArticlesExplore, getArticlesForYou } from "../../lib/articles";
 
 type PageProps = {
-  params: Promise<{ category: string, email: string }>;
+  params: Promise<{ category: string }>;
 };
 
 function formatCategoryName(category: string): string {
   // Decode URL-encoded strings
   const decoded = decodeURIComponent(category);
+
+  // Special case for "foryou"
+  if (decoded.toLowerCase() === "foryou") {
+    return "For You";
+  }
 
   // Split by spaces and capitalize each word
   const words = decoded.split(" ");
@@ -25,17 +33,45 @@ function formatCategoryName(category: string): string {
   return formattedWords.join(" ");
 }
 
-export default async function CategoryPage(props: PageProps) {
-  const params = await props.params;
-  let articles = [];
-  if (params.category === "foryou") {
-    articles = await getArticlesForYou(params.email);
-  } else if (params.category === "explore") {
-    articles = await getArticlesExplore(params.email );
-  } else {
-    throw new Error(`Unknown category: ${params.category}`);
-  }
-  const categoryName = formatCategoryName(params.category);
+export default function CategoryPage(props: PageProps) {
+  const router = useRouter();
+  const [articles, setArticles] = useState<any[]>([]);
+  const [categoryName, setCategoryName] = useState("");
+  const [hasEmail, setHasEmail] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const loadData = async () => {
+      const params = await props.params;
+      const email =
+        typeof window !== "undefined"
+          ? localStorage.getItem("user_email")
+          : null;
+
+      if (!email) {
+        router.replace("/landing");
+        return;
+      }
+
+      setHasEmail(true);
+      setCategoryName(formatCategoryName(params.category));
+
+      let articlesData = [];
+      if (params.category === "foryou") {
+        articlesData = await getArticlesForYou(email);
+      } else if (params.category === "explore") {
+        articlesData = await getArticlesExplore(email);
+      } else {
+        throw new Error(`Unknown category: ${params.category}`);
+      }
+
+      setArticles(articlesData);
+    };
+
+    loadData();
+  }, [props.params, router]);
+
+  if (hasEmail === null) return null;
+  if (!hasEmail) return null;
 
   return (
     <div className="min-h-screen">

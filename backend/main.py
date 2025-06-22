@@ -11,7 +11,7 @@
 This module is the main entry point for the API.
 """
 
-from fastapi import HTTPException, Depends
+from fastapi import HTTPException, Depends, Request
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 
@@ -103,31 +103,7 @@ def list_articles_display(request: Request, api_key: str = Depends(get_api_key))
         raise HTTPException(
             status_code=401, detail="Unauthorized: Missing user email in headers")
 
-
-    # Fetch articles from articles_new
-    articles_res = supabase.table("articles_new").select(
-        "id, title, summary, relevant_topics, topic_bias, opposite_view, report_id, preferred_writing_style"
-    ).execute()
-
-    if not articles_res.data:
-        return []
-
-    # Fetch created_at for each article using report_id
-    articles_with_created_at = []
-    for article in articles_res.data:
-        report_res = supabase.table("reports").select("created_at").eq(
-            "id", article["report_id"]).single().execute()
-        if report_res.data:
-            article["created_at"] = report_res.data["created_at"]
-        else:
-            # Handle case where report is not found
-            article["created_at"] = None
-        articles_with_created_at.append(article)
-
-    # Sort articles by created_at in descending order
-    articles_with_created_at.sort(key=lambda x: x["created_at"], reverse=True)
-
-    # Fetch user preferences from the "users" table
+    # Fetch user preferences first
     user_res = supabase.table("users").select(
         "preferred_topics, political_leaning, preferred_writing_style"
     ).eq("email", user_email).single().execute()
@@ -141,8 +117,38 @@ def list_articles_display(request: Request, api_key: str = Depends(get_api_key))
     preferred_writing_style = user_res.data.get("preferred_writing_style", [])
 
     print("preferred_topics: ", preferred_topics)
-    print(" political_leaning", political_leaning)
-    print("preferred_writing_style", preferred_writing_style)
+    print("political_leaning: ", political_leaning)
+    print("preferred_writing_style: ", preferred_writing_style)
+
+    # Single optimized query with JOIN to get articles with created_at
+    articles_res = supabase.table("articles_new").select(
+        "id, title, summary, relevant_topics, topic_bias, opposite_view, report_id, preferred_writing_style, reports!inner(created_at)"
+    ).execute()
+
+    if not articles_res.data:
+        return {"user_preferred": [], "explore": []}
+
+    # Process the joined data
+    articles_with_created_at = []
+    for article in articles_res.data:
+        # Extract created_at from the joined reports data
+        created_at = article.get("reports", {}).get(
+            "created_at") if article.get("reports") else None
+        article_data = {
+            "id": article["id"],
+            "title": article["title"],
+            "summary": article["summary"],
+            "relevant_topics": article["relevant_topics"],
+            "topic_bias": article["topic_bias"],
+            "opposite_view": article["opposite_view"],
+            "report_id": article["report_id"],
+            "preferred_writing_style": article["preferred_writing_style"],
+            "created_at": created_at
+        }
+        articles_with_created_at.append(article_data)
+
+    # Sort articles by created_at in descending order
+    articles_with_created_at.sort(key=lambda x: x["created_at"], reverse=True)
 
     # Define mapping for topic_bias to political_leaning
     bias_to_leaning = {
@@ -154,14 +160,12 @@ def list_articles_display(request: Request, api_key: str = Depends(get_api_key))
     # Filter articles into user_preferred and explore
     user_preferred = []
     explore = []
+    seen_report_ids = set()  # Track report_ids to avoid duplicates in explore
 
     for article in articles_with_created_at:
-        print(article)
-
         # Translate topic_bias to political_leaning
-        article_political_leaning = bias_to_leaning.get(article.get("topic_bias"))
-
-        print("article writing style:",  article.get("preferred_writing_style"))
+        article_political_leaning = bias_to_leaning.get(
+            article.get("topic_bias"))
 
         # Check if the article matches user preferences
         matches_topics = any(
@@ -173,9 +177,14 @@ def list_articles_display(request: Request, api_key: str = Depends(get_api_key))
         if matches_topics and matches_political_leaning and matches_writing_style:
             user_preferred.append(article)
         else:
-            explore.append(article)
+            # For explore: only include if writing style matches AND report_id not seen before
+            report_id = article.get("report_id")
+            if matches_writing_style and report_id not in seen_report_ids:
+                explore.append(article)
+                seen_report_ids.add(report_id)
 
-    # print(articles_with_created_at)
+    print("user_preferred: ", len(user_preferred))
+    print("explore: ", len(explore))
 
     # Return the filtered lists
     return {"user_preferred": user_preferred, "explore": explore}
@@ -309,11 +318,13 @@ def create_user(request: UserCreateRequest, api_key: str = Depends(get_api_key))
                 "user_id": res.data[0]["id"]
             }
         else:
-            raise HTTPException(status_code=500, detail="Failed to create user")
+            raise HTTPException(
+                status_code=500, detail="Failed to create user")
     except HTTPException as e:
         raise e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to create user: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to create user: {str(e)}")
 
 
 @app.put("/users/{user_id}")
@@ -332,7 +343,8 @@ def update_user(user_id: int, request: UserUpdateRequest, api_key: str = Depends
         if request.preferred_writing_style is not None:
             update_data["preferred_writing_style"] = request.preferred_writing_style
 
-        res = supabase.table("users").update(update_data).eq("id", user_id).execute()
+        res = supabase.table("users").update(
+            update_data).eq("id", user_id).execute()
         if res.data and len(res.data) > 0:
             return {"message": "User updated successfully"}
         else:
@@ -342,5 +354,5 @@ def update_user(user_id: int, request: UserUpdateRequest, api_key: str = Depends
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to update user: {str(e)}")
-
+        raise HTTPException(
+            status_code=500, detail=f"Failed to update user: {str(e)}")

@@ -1,4 +1,4 @@
-import { createAuthHeaders } from "./auth";
+import { createAuthHeaders, getApiKey } from "./auth";
 
 export interface Article {
   id: string;
@@ -34,13 +34,13 @@ const API_BASE = (
 
 export async function getAllArticlesDisplay(userEmail: string | null): Promise<{ foryou: Article[]; explore: Article[] }> {
   // Get user email from localStorage
-  //const userEmail = localStorage.getItem('user_email');
+  // const userEmail = localStorage.getItem('user_email');
 
-  console.log("inside getAllArticlesDisplay")
   const res = await fetch(`${API_BASE}/articles`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
+      "Authorization": `Bearer ${getApiKey()}`,
       "user_email": userEmail || "", // Pass user email in the header
     },
     next: { revalidate: 60 },
@@ -49,12 +49,8 @@ export async function getAllArticlesDisplay(userEmail: string | null): Promise<{
 
   if (!res.ok) return { foryou: [], explore: [] };
 
-
-  console.log("dsffsfds")
-  console.log("Explore articles:", res);
-
-
   const data = await res.json();
+
   // Map backend data to frontend Article structure
   const foryou = data.user_preferred.map(
     (item: BackendArticle): Article => ({
@@ -122,11 +118,8 @@ export async function getArticleBySlug(
 
 
 export async function getArticlesForYou(userEmail: string | null): Promise<Article[]> {
-  console.log("inside getArticlesForYou")
   const all = await getAllArticlesDisplay(userEmail);
   const articles = all.foryou
-  // Debugging output
-  console.log("Articles for you:", articles);
   return articles;
 }
 
@@ -134,6 +127,5 @@ export async function getArticlesForYou(userEmail: string | null): Promise<Artic
 export async function getArticlesExplore(userEmail: string | null): Promise<Article[]> {
   const all = await getAllArticlesDisplay(userEmail);
   const articles = all.explore
-  console.log("Explore articles:", articles);
   return articles;
 }
