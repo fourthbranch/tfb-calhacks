@@ -58,11 +58,12 @@ class ArticleDetail(BaseModel):
 class SubscribeRequest(BaseModel):
     email: str
 
-      
+
 class GenNewsWithRequestRequest(BaseModel):
     user_request: str
+    user_email: str
 
-      
+
 class UserCheckRequest(BaseModel):
     email: str
 
@@ -182,13 +183,21 @@ def gen_news() -> Dict[str, Any]:
 def gen_news_with_request(request: GenNewsWithRequestRequest) -> Dict[str, Any]:
     """Generate a topic for a news article with a user request"""
     article_ids = []
+
+    # Get the user id from the email
+    user_id = supabase.table("users").select("id").eq(
+        "email", request.user_email).execute()
+    if not user_id.data or len(user_id.data) == 0:
+        raise HTTPException(status_code=400, detail="User not found")
+    user_id = user_id.data[0]["id"]
+
     for _ in range(1):
-        article_id = topic_generator(user_request=request.user_request)
+        article_id = topic_generator(user_id=user_id, user_request=request.user_request)
         if article_id != -1:
             article_ids.append(article_id)
     return {"article_ids": article_ids}
 
-  
+
 @app.post("/users/check")
 def check_user(request: UserCheckRequest):
     """Check if a user exists by email"""
@@ -225,7 +234,7 @@ def create_user(request: UserCreateRequest):
             "additional_info": request.additional_info,
             "preferred_writing_style": request.preferred_writing_style
         }
-        
+
         res = supabase.table("users").insert(user_data).execute()
         if res.data and len(res.data) > 0:
             return {
@@ -255,7 +264,7 @@ def update_user(user_id: int, request: UserUpdateRequest):
             update_data["additional_info"] = request.additional_info
         if request.preferred_writing_style is not None:
             update_data["preferred_writing_style"] = request.preferred_writing_style
-        
+
         res = supabase.table("users").update(update_data).eq("id", user_id).execute()
         if res.data and len(res.data) > 0:
             return {"message": "User updated successfully"}
