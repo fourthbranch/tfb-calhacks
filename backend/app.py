@@ -181,12 +181,12 @@ def gen_news() -> Dict[str, Any]:
 @app.post("/gen_news_with_request")
 def gen_news_with_request(request: GenNewsWithRequestRequest) -> Dict[str, Any]:
     """Generate a topic for a news article with a user request"""
-    three_article_ids = []
-    for _ in range(3):
+    article_ids = []
+    for _ in range(1):
         article_id = topic_generator(user_request=request.user_request)
         if article_id != -1:
-            three_article_ids.append(article_id)
-    return {"article_ids": three_article_ids}
+            article_ids.append(article_id)
+    return {"article_ids": article_ids}
 
   
 @app.post("/users/check")
