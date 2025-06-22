@@ -57,6 +57,10 @@ class SubscribeRequest(BaseModel):
     email: str
 
 
+class GenNewsWithRequestRequest(BaseModel):
+    user_request: str
+
+
 @app.get("/articles", response_model=List[ArticleListItem])
 def list_articles():
     res = supabase.table("articles").select(
@@ -123,6 +127,14 @@ def subscribe(request: SubscribeRequest):
 @app.get("/gen_news")
 def gen_news() -> Dict[str, Any]:
     """Generate a topic for a news article"""
-    for _ in range(1):
+    for _ in range(3):
         topic_generator()
+    return {"message": "Generated news article"}
+
+
+@app.get("/gen_news_with_request")
+def gen_news_with_request(request: GenNewsWithRequestRequest) -> Dict[str, Any]:
+    """Generate a topic for a news article with a user request"""
+    for _ in range(3):
+        topic_generator(user_request=request.user_request)
     return {"message": "Generated news article"}

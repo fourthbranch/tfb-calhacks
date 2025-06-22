@@ -65,10 +65,10 @@ def generate_report(topic_query: str) -> FinalNewsArticle:
     return report
 
 
-def topic_generator(user_id: int = -1):
+def topic_generator(user_id: int = -1, user_request: str = ""):
     # Fetch the information about the user: political leaning
     if user_id == -1:
-        political_leaning = "conservative"  # TODO: Add a default political leaning
+        political_leaning = "neutral"  # TODO: Add a default political leaning
     else:
         user_info = supabase.table("users").select(
             "*").eq("id", user_id).execute()
@@ -76,7 +76,7 @@ def topic_generator(user_id: int = -1):
 
     messages = [
         SystemMessage(
-            content=topic_generator_system_prompt(political_leaning)),
+            content=topic_generator_system_prompt(political_leaning, user_request)),
         HumanMessage(
             content="Generate a topic for a news article that will be written by the journalists.")
     ]

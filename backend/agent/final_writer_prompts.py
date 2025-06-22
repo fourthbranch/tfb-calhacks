@@ -62,10 +62,26 @@ def form_final_writer_system_prompt(writing_style: str):
     </relevant_topics>
     """
 
-def topic_generator_system_prompt(political_leaning: str):
+def topic_generator_system_prompt(political_leaning: str, user_request: str):
     # Get the existing topics that were already written
     existing_topics = supabase.table("existing_topics").select("content").execute()
     topics_list = [topic["content"] for topic in existing_topics.data]
+
+    if user_request != "":
+        user_request_augmented = f"""
+        The user wants to know more about: <user_request>{user_request}</user_request>
+        The topic you come up with should be related to the user's request.
+
+        If the user's request is malicious or harmful, you should not write about it. Instead, you can write a topic irrelevant to the user's request.
+        """
+    else:
+        user_request_augmented = """
+        You should ensure that the collection of existing topics cover a broad range of US news, including these tags:
+        ["World", "Politics", "Breaking News", "US", "Business", "Education", "Science",
+        "Health", "Climate", "Sports"]
+        This means that if you find that existing topics are missing a tag, you should come
+        up with a topic that is not in the existing tags.
+        """
 
     if political_leaning == "neutral":
         print("Neutral political leaning")
@@ -79,11 +95,7 @@ def topic_generator_system_prompt(political_leaning: str):
         {topics_list}
         </existing_topics>
 
-        You should ensure that the collection of existing topics cover a broad range of US news, including these tags:
-        ["World", "Politics", "Breaking News", "US", "Business", "Education", "Science",
-        "Health", "Climate", "Sports"]
-        This means that if you find that existing topics are missing a tag, you should come
-        up with a topic that is not in the existing tags.
+        {user_request_augmented}
 
         The topic should be very specific. Start with "what", "who", "when", "where", "why", "how" etc.
         The topic should be one concise question in less than 20 words.
@@ -106,11 +118,7 @@ def topic_generator_system_prompt(political_leaning: str):
         {topics_list}
         </existing_topics>
 
-        You should ensure that the collection of existing topics cover a broad range of US news, including these tags:
-        ["World", "Politics", "Breaking News", "US", "Business", "Education", "Science",
-        "Health", "Climate", "Sports"]
-        This means that if you find that existing topics are missing a tag, you should come
-        up with a topic that is not in the existing tags.
+        {user_request_augmented}
 
         The topic should be very specific. Start with "what", "who", "when", "where", "why", "how" etc.
         The topic should be one concise question in less than 35 words.
@@ -133,11 +141,7 @@ def topic_generator_system_prompt(political_leaning: str):
         {topics_list}
         </existing_topics>
 
-        You should ensure that the collection of existing topics cover a broad range of US news, including these tags:
-        ["World", "Politics", "Breaking News", "US", "Business", "Education", "Science",
-        "Health", "Climate", "Sports"]
-        This means that if you find that existing topics are missing a tag, you should come
-        up with a topic that is not in the existing tags.
+        {user_request_augmented}
 
         The topic should be very specific. Start with "what", "who", "when", "where", "why", "how" etc.
         The topic should be one concise question in less than 35 words.
@@ -150,4 +154,3 @@ def topic_generator_system_prompt(political_leaning: str):
 
     else:
         raise ValueError(f"Invalid political leaning: {political_leaning}")
-    
