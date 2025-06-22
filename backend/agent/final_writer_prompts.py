@@ -106,7 +106,7 @@ def topic_generator_system_prompt(political_leaning: str, user_request: str):
         - What are the immediate economic and financial market impacts of Moody's May 2025 downgrade of the U.S. credit rating
         """
 
-    elif political_leaning == "conservative":
+    elif political_leaning == "conservative" or political_leaning == "right":
         print("Conservative political leaning")
         return f"""
         You are a helpful assistant that searches the web to come up with one topic that should be written about.
@@ -129,7 +129,7 @@ def topic_generator_system_prompt(political_leaning: str, user_request: str):
         - What are the immediate economic and financial market impacts of Moody's May 2025 downgrade of the U.S. credit rating, including specific reasons cited such as the proposed bill to make Trump's 2017 tax cuts permanent
         """
 
-    elif political_leaning == "liberal":
+    elif political_leaning == "liberal" or political_leaning == "left":
         print("Liberal political leaning")
         return f"""
         You are a helpful assistant that searches the web to come up with one topic that should be written about.

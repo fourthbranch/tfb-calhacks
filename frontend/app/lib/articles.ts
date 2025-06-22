@@ -1,3 +1,5 @@
+import { createAuthHeaders } from "./auth";
+
 export interface Article {
   id: string;
   slug: string;
@@ -9,8 +11,7 @@ export interface Article {
   date: string;
   bias?: string;
   featured?: boolean;
-  opposite_view?: string; 
-
+  opposite_view?: string;
 }
 
 interface BackendArticle {
@@ -22,7 +23,7 @@ interface BackendArticle {
   image?: string;
   relevant_topics?: string[];
   created_at?: string;
-  opposite_view?: string; 
+  opposite_view?: string;
   bias?: string;
 }
 
@@ -30,7 +31,10 @@ interface BackendArticle {
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
 
 export async function getAllArticles(): Promise<Article[]> {
-  const res = await fetch(`${API_BASE}/articles`, { next: { revalidate: 60 } });
+  const res = await fetch(`${API_BASE}/articles`, {
+    next: { revalidate: 60 },
+    headers: createAuthHeaders(),
+  });
   if (!res.ok) return [];
   const data = await res.json();
   return data.map(
@@ -55,7 +59,9 @@ export async function getAllArticles(): Promise<Article[]> {
 export async function getArticleBySlug(
   slug: string
 ): Promise<Article | undefined> {
-  const res = await fetch(`${API_BASE}/articles/${slug}`);
+  const res = await fetch(`${API_BASE}/articles/${slug}`, {
+    headers: createAuthHeaders(),
+  });
   if (!res.ok) return undefined;
   const item: BackendArticle = await res.json();
   return {

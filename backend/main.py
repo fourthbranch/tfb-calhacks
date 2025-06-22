@@ -14,12 +14,14 @@ This module is the main entry point for the API.
 import os
 from typing import Dict, Any
 import sys
+from fastapi import Depends
 
-from .app import app
+from backend.app import app
+from backend.security import get_api_key
 
 
 @app.get("/")
-def root() -> Dict[str, Any]:
+def root(api_key: str = Depends(get_api_key)) -> Dict[str, Any]:
     """Root endpoint for the API"""
     return {"message": "Hello, World!"}
 
