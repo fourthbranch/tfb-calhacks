@@ -9,11 +9,11 @@ from langgraph.graph import START, END, StateGraph
 from langgraph.types import interrupt, Command
 
 
-# Add the parent directory to sys.path
-sys.path.append(os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "../fourthbranch")))
+# # Add the parent directory to sys.path
+# sys.path.append(os.path.abspath(
+#     os.path.join(os.path.dirname(__file__), "../fourthbranch")))
 
-from agent.state import (
+from backend.agent.state import (
     ReportStateInput,
     ReportStateOutput,
     Sections,
@@ -23,7 +23,7 @@ from agent.state import (
     Queries,
     Feedback
 )
-from agent.prompts import (
+from backend.agent.prompts import (
     report_planner_query_writer_instructions,
     report_planner_instructions,
     query_writer_instructions,
@@ -32,8 +32,8 @@ from agent.prompts import (
     section_grader_instructions,
     section_writer_inputs
 )
-from agent.configuration import Configuration
-from agent.utils import (
+from backend.agent.configuration import Configuration
+from backend.agent.utils import (
     format_sections,
     get_config_value,
     get_search_params,

@@ -14,10 +14,10 @@ from langchain_community.tools.tavily_search import TavilySearchResults
 # -------------------
 # Add the parent directory to sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from agent.graph import builder
-from agent.final_writer_prompts import FINAL_WRITER_SYSTEM_PROMPT, topic_generator_system_prompt
-from agent.formats import FinalNewsArticle
-from backend import supabase
+from backend.agent.graph import builder
+from backend.agent.final_writer_prompts import form_final_writer_system_prompt, topic_generator_system_prompt
+from backend.agent.formats import FinalNewsArticle
+from backend.db import supabase
 # -------------------
 
 
@@ -71,21 +71,17 @@ def generate_report(topic_query: str) -> FinalNewsArticle:
     print(f"Report: {report}")
     return report
 
-    # final_writer = claude_3_7_sonnet.with_structured_output(FinalNewsArticle)
 
-    # messages = [
-    #     SystemMessage(content=FINAL_WRITER_SYSTEM_PROMPT),
-    #     HumanMessage(
-    #         content=f"You are given with this report:\n{report}\n\nPlease write a news article based on the report.")
-    # ]
+def topic_generator(user_id: int = -1):
+    # Fetch the information about the user: political leaning
+    if user_id == -1:
+        political_leaning = "liberal"  # TODO: Add a default political leaning
+    else:
+        user_info = supabase.table("users").select("*").eq("id", user_id).execute()
+        political_leaning = user_info.data[0].political_leaning
 
-    # news_article = final_writer.invoke(messages)
-    # return news_article
-
-
-def topic_generator():
     messages = [
-        SystemMessage(content=topic_generator_system_prompt()),
+        SystemMessage(content=topic_generator_system_prompt(political_leaning)),
         HumanMessage(
             content="Generate a topic for a news article that will be written by the journalists.")
     ]
@@ -102,19 +98,99 @@ def topic_generator():
 
     report = generate_report(topic_content)
 
-    # TODO: Save the report to the database
+    final_writer = claude_3_7_sonnet.with_structured_output(FinalNewsArticle)
+
+    if user_id == -1:
+        # All eight permutations of writing styles
+        # Preferred styles
+        # Short summaries vs in-depth detailed analysis/report (“short” or “depth”)
+        # Informal vs. formal (“informal” or “formal”)
+        # Satirical / humorous vs. straight-laced (“satirical” or “straight”)
+
+        all_possible_writing_styles = [
+            ["short", "informal", "satirical"],
+            ["short", "informal", "straight"],
+            ["short", "formal", "satirical"],
+            ["short", "formal", "straight"],
+            ["depth", "informal", "satirical"],
+            ["depth", "informal", "straight"],
+            ["depth", "formal", "satirical"],
+            ["depth", "formal", "straight"],
+        ]
+
+        for writing_style in all_possible_writing_styles:
+            writing_style_str = ""
+            if "short" in writing_style:
+                writing_style_str += "short summary and concise\n"
+            elif "depth" in writing_style:
+                writing_style_str += "in-depth detailed analysis\n"
+            elif "informal" in writing_style:
+                writing_style_str += "informal\n"
+            elif "formal" in writing_style:
+                writing_style_str += "formal\n"
+            elif "satirical" in writing_style:
+                writing_style_str += "satirical\n"
+            elif "straight" in writing_style:
+                writing_style_str += "straight-laced\n"
+
+            messages = [
+                SystemMessage(content=form_final_writer_system_prompt(writing_style_str)),
+                HumanMessage(
+                    content=f"You are given with this report:\n{report}\n\nPlease write a news article based on the report.")
+            ]
+            news_article = final_writer.invoke(messages)
+            supabase.table("articles_new").insert({
+                "title": news_article.title,
+                "summary": news_article.summary,
+                "content": news_article.content,
+                "opposite_view": news_article.opposite_view,
+                "preferred_writing_style": writing_style,
+                "bias": news_article.bias,
+                "topic_bias": political_leaning,
+                "relevant_topics": news_article.relevant_topics
+            }).execute()
+
+    else:
+        # Get the user's preferred writing style
+        preferred_writing_style = user_info.data[0].preferred_writing_style
+        writing_style_str = ""
+        if "short" in preferred_writing_style:
+            writing_style_str += "short summary and concise\n"
+        elif "depth" in preferred_writing_style:
+            writing_style_str += "in-depth detailed analysis\n"
+        elif "informal" in preferred_writing_style:
+            writing_style_str += "informal\n"
+        elif "formal" in preferred_writing_style:
+            writing_style_str += "formal\n"
+        elif "satirical" in preferred_writing_style:
+            writing_style_str += "satirical\n"
+        elif "straight" in preferred_writing_style:
+            writing_style_str += "straight-laced\n"
+        messages = [
+            SystemMessage(content=form_final_writer_system_prompt(writing_style_str)),
+            HumanMessage(content=f"You are given with this report:\n{report}\n\nPlease write a news article based on the report.")
+        ]
+        news_article = final_writer.invoke(messages)
+        supabase.table("articles_new").insert({
+            "title": news_article.title,
+            "summary": news_article.summary,
+            "content": news_article.content,
+            "opposite_view": news_article.opposite_view,
+            "preferred_writing_style": preferred_writing_style,
+            "bias": news_article.bias,
+            "topic_bias": political_leaning,
+            "relevant_topics": news_article.relevant_topics
+        }).execute()
+
+    # Save the report to the database
+    supabase.table("reports").insert({
+        "content": report,
+        "topic_bias": political_leaning
+    }).execute()
 
     # Save the topic to the database
     supabase.table("existing_topics").insert(
         {"content": topic_content}).execute()
-
-    # Save the article to the database
-    # supabase.table("articles").insert({
-    #     "title": news_article.title,
-    #     "summary": news_article.summary,
-    #     "content": news_article.content,
-    #     "relevant_topics": news_article.relevant_topics
-    # }).execute()
 
 
 if __name__ == "__main__":
