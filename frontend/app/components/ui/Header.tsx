@@ -4,13 +4,8 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 
 const categories = [
-  "Politics",
-  "Business",
-  "Education",
-  "Science",
-  "Health",
-  "Climate",
-  "Sports",
+  "ForYou",
+  "Explore",
 ];
 
 export default function Header() {

@@ -6,23 +6,22 @@ import Footer from "./components/ui/Footer";
 import FeaturedArticle from "./components/ui/FeaturedArticle";
 import ArticleGrid from "./components/sections/ArticleGrid";
 import NewsletterForm from "./components/ui/NewsletterForm";
-import { getFeaturedArticles, getRecentArticles } from "./lib/articles";
+import {getArticlesForYou} from "./lib/articles";
 
 export default function Home() {
   const router = useRouter();
   const [hasEmail, setHasEmail] = useState<boolean | null>(null);
-  const [featuredArticles, setFeaturedArticles] = useState<any[]>([]);
-  const [recentArticles, setRecentArticles] = useState<any[]>([]);
+  const [articles, setarticles] = useState<any[]>([]);
 
   useEffect(() => {
     const email = typeof window !== "undefined" ? localStorage.getItem("user_email") : null;
+    console.log("Retrieved user_email:", email);
     if (!email) {
       router.replace("/landing");
     } else {
       setHasEmail(true);
       (async () => {
-        setFeaturedArticles(await getFeaturedArticles());
-        setRecentArticles(await getRecentArticles());
+        setarticles(await getArticlesForYou(email));
       })();
     }
   }, [router]);
@@ -34,8 +33,7 @@ export default function Home() {
     <div className="min-h-screen bg-white">
       <Header />
       <main className="container mx-auto px-4 py-8">
-        {featuredArticles.length > 0 && <FeaturedArticle article={featuredArticles[0]} />}
-        {recentArticles.length > 0 && <ArticleGrid articles={recentArticles} />}
+        {articles.length > 0 && <ArticleGrid articles={articles} />}
         <NewsletterForm />
       </main>
       <Footer />

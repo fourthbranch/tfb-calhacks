@@ -3,10 +3,10 @@ import Header from "../../components/ui/Header";
 import Footer from "../../components/ui/Footer";
 import ArticleGrid from "../../components/sections/ArticleGrid";
 import NewsletterForm from "../../components/ui/NewsletterForm";
-import { getArticlesByCategory } from "../../lib/articles";
+import {getArticlesExplore, getArticlesForYou} from "../../lib/articles";
 
 type PageProps = {
-  params: Promise<{ category: string }>;
+  params: Promise<{ category: string, email: string }>;
 };
 
 function formatCategoryName(category: string): string {
@@ -27,7 +27,16 @@ function formatCategoryName(category: string): string {
 
 export default async function CategoryPage(props: PageProps) {
   const params = await props.params;
-  const articles = await getArticlesByCategory(params.category);
+
+  let articles = [];
+  if (params.category === "foryou") {
+    articles = await getArticlesForYou(params.email);
+  } else if (params.category === "explore") {
+    articles = await getArticlesExplore(params.email );
+  } else {
+    throw new Error(`Unknown category: ${params.category}`);
+  }
+
   const categoryName = formatCategoryName(params.category);
 
   return (
