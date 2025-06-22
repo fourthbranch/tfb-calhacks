@@ -6,7 +6,7 @@ from langgraph.constants import Send
 from langgraph.graph import START, END, StateGraph
 from langgraph.types import interrupt, Command
 
-from .state import (
+from backend.agent.state import (
     ReportStateInput,
     ReportStateOutput,
     Sections,
@@ -16,7 +16,7 @@ from .state import (
     Queries,
     Feedback
 )
-from .prompts import (
+from backend.agent.prompts import (
     report_planner_query_writer_instructions,
     report_planner_instructions,
     query_writer_instructions,
@@ -25,8 +25,8 @@ from .prompts import (
     section_grader_instructions,
     section_writer_inputs
 )
-from .configuration import Configuration
-from .utils import (
+from backend.agent.configuration import Configuration
+from backend.agent.utils import (
     format_sections,
     get_config_value,
     get_search_params,

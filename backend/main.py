@@ -16,10 +16,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 
-from .agent.run import topic_generator
-from .app import app
-from .security import get_api_key
-from .db import supabase
+from backend.agent import topic_generator
+from backend.app import app
+from backend.security import get_api_key
+from backend.db import supabase
 
 
 @app.get("/")

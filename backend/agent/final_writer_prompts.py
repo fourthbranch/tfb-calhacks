@@ -1,4 +1,4 @@
-from ..db import supabase
+from backend.db import supabase
 
 
 def form_final_writer_system_prompt(writing_style: str):
