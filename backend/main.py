@@ -14,8 +14,11 @@ This module is the main entry point for the API.
 from fastapi import HTTPException, Depends
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
+from fastapi.responses import StreamingResponse
+import json
 
 from backend.agent import topic_generator
+from backend.agent.run import stream_report_generation
 from backend.app import app
 from backend.security import get_api_key
 from backend.db import supabase
@@ -250,7 +253,27 @@ def gen_news_with_request(request: GenNewsWithRequestRequest, api_key: str = Dep
         if article_id != -1:
             article_ids.append(article_id)
 
-    return {"article_ids": article_ids}
+    return {"message": "Generated news articles", "article_ids": article_ids}
+
+
+@app.post("/gen_news_stream")
+async def gen_news_stream(request: GenNewsWithRequestRequest, api_key: str = Depends(get_api_key)):
+    """Generate a news article with a user request and stream the process."""
+    user_id = -1
+    if request.user_email:
+        try:
+            user_res = supabase.table("users").select(
+                "id").eq("email", request.user_email).execute()
+            if user_res.data and len(user_res.data) > 0:
+                user_id = user_res.data[0]["id"]
+        except Exception as e:
+            print(f"Error looking up user: {e}, using anonymous mode")
+
+    async def event_stream():
+        async for event in stream_report_generation(user_id=user_id, user_request=request.user_request):
+            yield f"data: {json.dumps(event)}\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
 @app.post("/users/check")
