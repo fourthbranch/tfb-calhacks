@@ -2,10 +2,10 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import Header from "@/app/components/ui/Header";
-import Footer from "@/app/components/ui/Footer";
-import ArticleCard from "@/app/components/ui/ArticleCard";
-import { getArticleBySlug, type Article } from "@/app/lib/articles";
+import Header from "@/components/ui/Header";
+import Footer from "@/components/ui/Footer";
+import ArticleCard from "@/components/ui/ArticleCard";
+import { getArticleBySlug, type Article } from "@/lib/articles";
 
 // Format date to be human readable
 function formatDate(dateString: string) {
