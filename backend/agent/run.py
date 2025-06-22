@@ -48,7 +48,7 @@ async def stream_report_generation(user_id: int, user_request: str):
     ]
     topic_response = await topic_agent.ainvoke({"messages": topic_messages})
     topic_content = topic_response["messages"][-1].content
-    
+
     yield {"step": "topic_generation", "status": "completed", "message": f"Topic chosen: '{topic_content}'"}
 
     # Agent 2: Report Generator (LangGraph)
@@ -56,7 +56,7 @@ async def stream_report_generation(user_id: int, user_request: str):
 
     checkpointer = MemorySaver()
     graph = builder.compile(checkpointer=checkpointer)
-    thread = {"configurable": {"thread_id": str(uuid.uuid4()), "planner_provider": "anthropic", "planner_model": "claude-3-7-sonnet-latest", "writer_provider": "anthropic", "writer_model": "claude-3-7-sonnet-latest", "max_search_depth": 2, "number_of_queries": 2}}
+    thread = {"configurable": {"thread_id": str(uuid.uuid4()), "planner_provider": "anthropic", "planner_model": "claude-3-7-sonnet-latest", "writer_provider": "anthropic", "writer_model": "claude-3-7-sonnet-latest", "max_search_depth": 1, "number_of_queries": 1}}
 
     async for event in graph.astream({"topic": topic_content}, thread, stream_mode="updates"):
         if 'generate_report_plan' in event:
@@ -74,7 +74,7 @@ async def stream_report_generation(user_id: int, user_request: str):
              yield {"step": "research", "status": "in_progress", "message": "Writing researched sections..."}
 
     yield {"step": "research", "status": "completed", "message": "Finished researching and writing sections."}
-    
+
     final_state = await graph.aget_state(thread)
     report = final_state.values.get('final_report', "No report generated")
 
@@ -83,11 +83,11 @@ async def stream_report_generation(user_id: int, user_request: str):
 
     # ... (The logic for handling different writing styles and saving to DB will be here)
     # For now, let's just yield the final report for simplicity in this step.
-    
+
     # This part is complex, for now, let's just simulate the end.
     # In a real implementation, we'd call the final writer and save to DB.
     # For this task, we will just return the final generated report id
-    
+
     # Save the report to the database FIRST and get the id
     report_result = supabase.table("reports").insert({
         "content": report,
@@ -102,7 +102,7 @@ async def stream_report_generation(user_id: int, user_request: str):
     else:
         user_info = supabase.table("users").select("*").eq("id", user_id).execute()
         preferred_writing_style = user_info.data[0]["preferred_writing_style"]
-    
+
     writing_style_str = ""
     if "short" in preferred_writing_style:
         writing_style_str += "short and concise summary that only cover the most important information\\n"
@@ -135,7 +135,7 @@ async def stream_report_generation(user_id: int, user_request: str):
         "topic_bias": political_leaning,
         "relevant_topics": news_article.relevant_topics
     }).execute()
-    
+
     article_id = article_res.data[0]['id']
 
     yield {"step": "final_writing", "status": "completed", "message": "Article generated successfully!", "data": {"article_id": article_id}}
