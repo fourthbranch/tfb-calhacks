@@ -1,25 +1,28 @@
-import os
-import asyncio
-import requests
-import random
-import concurrent
-import aiohttp
-import httpx
-import time
-from typing import List, Optional, Dict, Any, Union
-from urllib.parse import unquote
-from exa_py import Exa
-from linkup import LinkupClient
-from tavily import AsyncTavilyClient
-from duckduckgo_search import DDGS
-from bs4 import BeautifulSoup
-from markdownify import markdownify
-from langchain_community.retrievers import ArxivRetriever
-from langchain_community.utilities.pubmed import PubMedAPIWrapper
-from langchain_core.tools import tool
 from langsmith import traceable
-
+from langchain_core.tools import tool
+from langchain_community.utilities.pubmed import PubMedAPIWrapper
+from langchain_community.retrievers import ArxivRetriever
+from markdownify import markdownify
+from bs4 import BeautifulSoup
+from duckduckgo_search import DDGS
+from tavily import AsyncTavilyClient
+from linkup import LinkupClient
+from exa_py import Exa
+from urllib.parse import unquote
+import time
+import httpx
+import aiohttp
+import concurrent
+import random
+import requests
 from backend.agent.state import Section
+import os
+from typing import List, Dict, Any, Optional
+from typing import Union
+import asyncio
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 def get_config_value(value):
@@ -32,6 +35,7 @@ def get_config_value(value):
         return value
     else:
         return value.value
+
 
 def get_search_params(search_api: str, search_api_config: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     """
@@ -64,6 +68,7 @@ def get_search_params(search_api: str, search_api_config: Optional[Dict[str, Any
     # Filter the config to only include accepted parameters
     return {k: v for k, v in search_api_config.items() if k in accepted_params}
 
+
 def deduplicate_and_format_sources(search_response, max_tokens_per_source=5000, include_raw_content=True):
     """
     Takes a list of search responses and formats them into a readable string.
@@ -84,7 +89,7 @@ def deduplicate_and_format_sources(search_response, max_tokens_per_source=5000, 
     Returns:
         str: Formatted string with deduplicated sources
     """
-     # Collect all results
+    # Collect all results
     sources_list = []
     for response in search_response:
         sources_list.extend(response['results'])
@@ -107,13 +112,15 @@ def deduplicate_and_format_sources(search_response, max_tokens_per_source=5000, 
             raw_content = source.get('raw_content', '')
             if raw_content is None:
                 raw_content = ''
-                print(f"Warning: No raw_content found for source {source['url']}")
+                print(
+                    f"Warning: No raw_content found for source {source['url']}")
             if len(raw_content) > char_limit:
                 raw_content = raw_content[:char_limit] + "... [truncated]"
             formatted_text += f"Full source content limited to {max_tokens_per_source} tokens: {raw_content}\n\n"
-        formatted_text += f"{'='*80}\n\n" # End section separator
+        formatted_text += f"{'='*80}\n\n"  # End section separator
 
     return formatted_text.strip()
+
 
 def format_sections(sections: list[Section]) -> str:
     """ Format a list of sections into a string """
@@ -133,6 +140,7 @@ Content:
 
 """
     return formatted_str
+
 
 @traceable
 async def tavily_search_async(search_queries, max_results: int = 5, topic: str = "general", include_raw_content: bool = True):
@@ -164,18 +172,19 @@ async def tavily_search_async(search_queries, max_results: int = 5, topic: str =
     tavily_async_client = AsyncTavilyClient()
     search_tasks = []
     for query in search_queries:
-            search_tasks.append(
-                tavily_async_client.search(
-                    query,
-                    max_results=max_results,
-                    include_raw_content=include_raw_content,
-                    topic=topic
-                )
+        search_tasks.append(
+            tavily_async_client.search(
+                query,
+                max_results=max_results,
+                include_raw_content=include_raw_content,
+                topic=topic
             )
+        )
 
     # Execute all searches concurrently
     search_docs = await asyncio.gather(*search_tasks)
     return search_docs
+
 
 @traceable
 def perplexity_search(search_queries):
@@ -272,6 +281,7 @@ def perplexity_search(search_queries):
 
     return search_docs
 
+
 @traceable
 async def exa_search(search_queries, max_characters: Optional[int] = None, num_results=5,
                      include_domains: Optional[List[str]] = None,
@@ -311,10 +321,11 @@ async def exa_search(search_queries, max_characters: Optional[int] = None, num_r
     """
     # Check that include_domains and exclude_domains are not both specified
     if include_domains and exclude_domains:
-        raise ValueError("Cannot specify both include_domains and exclude_domains")
+        raise ValueError(
+            "Cannot specify both include_domains and exclude_domains")
 
     # Initialize Exa client (API key should be configured in your .env file)
-    exa = Exa(api_key = f"{os.getenv('EXA_API_KEY')}")
+    exa = Exa(api_key=f"{os.getenv('EXA_API_KEY')}")
 
     # Define the function to process a single query
     async def process_query(query):
@@ -471,9 +482,11 @@ async def exa_search(search_queries, max_characters: Optional[int] = None, num_r
             # Add additional delay if we hit a rate limit error
             if "429" in str(e):
                 print("Rate limit exceeded. Adding additional delay...")
-                await asyncio.sleep(1.0)  # Add a longer delay if we hit a rate limit
+                # Add a longer delay if we hit a rate limit
+                await asyncio.sleep(1.0)
 
     return search_docs
+
 
 @traceable
 async def arxiv_search_async(search_queries, load_max_docs=5, get_full_documents=True, load_all_available_meta=True):
@@ -543,22 +556,26 @@ async def arxiv_search_async(search_queries, load_max_docs=5, get_full_documents
 
                 # Add publication information
                 published = metadata.get('Published')
-                published_str = published.isoformat() if hasattr(published, 'isoformat') else str(published) if published else ''
+                published_str = published.isoformat() if hasattr(
+                    published, 'isoformat') else str(published) if published else ''
                 if published_str:
                     content_parts.append(f"Published: {published_str}")
 
                 # Add additional metadata if available
                 if 'primary_category' in metadata:
-                    content_parts.append(f"Primary Category: {metadata['primary_category']}")
+                    content_parts.append(
+                        f"Primary Category: {metadata['primary_category']}")
 
                 if 'categories' in metadata and metadata['categories']:
-                    content_parts.append(f"Categories: {', '.join(metadata['categories'])}")
+                    content_parts.append(
+                        f"Categories: {', '.join(metadata['categories'])}")
 
                 if 'comment' in metadata and metadata['comment']:
                     content_parts.append(f"Comment: {metadata['comment']}")
 
                 if 'journal_ref' in metadata and metadata['journal_ref']:
-                    content_parts.append(f"Journal Reference: {metadata['journal_ref']}")
+                    content_parts.append(
+                        f"Journal Reference: {metadata['journal_ref']}")
 
                 if 'doi' in metadata and metadata['doi']:
                     content_parts.append(f"DOI: {metadata['doi']}")
@@ -628,9 +645,11 @@ async def arxiv_search_async(search_queries, load_max_docs=5, get_full_documents
             # Add additional delay if we hit a rate limit error
             if "429" in str(e) or "Too Many Requests" in str(e):
                 print("ArXiv rate limit exceeded. Adding additional delay...")
-                await asyncio.sleep(5.0)  # Add a longer delay if we hit a rate limit
+                # Add a longer delay if we hit a rate limit
+                await asyncio.sleep(5.0)
 
     return search_docs
+
 
 @traceable
 async def pubmed_search_async(search_queries, top_k_results=5, email=None, api_key=None, doc_content_chars_max=4000):
@@ -697,7 +716,8 @@ async def pubmed_search_async(search_queries, top_k_results=5, email=None, api_k
                     content_parts.append(f"Published: {doc['Published']}")
 
                 if doc.get('Copyright Information'):
-                    content_parts.append(f"Copyright Information: {doc['Copyright Information']}")
+                    content_parts.append(
+                        f"Copyright Information: {doc['Copyright Information']}")
 
                 if doc.get('Summary'):
                     content_parts.append(f"Summary: {doc['Summary']}")
@@ -780,6 +800,7 @@ async def pubmed_search_async(search_queries, top_k_results=5, email=None, api_k
 
     return search_docs
 
+
 @traceable
 async def linkup_search(search_queries, depth: Optional[str] = "standard"):
     """
@@ -806,25 +827,27 @@ async def linkup_search(search_queries, depth: Optional[str] = "standard"):
     search_tasks = []
     for query in search_queries:
         search_tasks.append(
-                client.async_search(
-                    query,
-                    depth,
-                    output_type="searchResults",
-                )
+            client.async_search(
+                query,
+                depth,
+                output_type="searchResults",
             )
+        )
 
     search_results = []
     for response in await asyncio.gather(*search_tasks):
         search_results.append(
             {
                 "results": [
-                    {"title": result.name, "url": result.url, "content": result.content}
+                    {"title": result.name, "url": result.url,
+                        "content": result.content}
                     for result in response.results
                 ],
             }
         )
 
     return search_results
+
 
 @traceable
 async def google_search_async(search_queries: Union[str, List[str]], max_results: int = 5, include_raw_content: bool = True):
@@ -840,7 +863,6 @@ async def google_search_async(search_queries: Union[str, List[str]], max_results
     Returns:
         List[dict]: List of search responses from Google, one per query
     """
-
 
     # Check for API credentials from environment variables
     api_key = os.environ.get("GOOGLE_API_KEY")
@@ -861,7 +883,8 @@ async def google_search_async(search_queries: Union[str, List[str]], max_results
         return f"{lynx_version} {libwww_version} {ssl_mm_version} {openssl_version}"
 
     # Create executor for running synchronous operations
-    executor = None if use_api else concurrent.futures.ThreadPoolExecutor(max_workers=5)
+    executor = None if use_api else concurrent.futures.ThreadPoolExecutor(
+        max_workers=5)
 
     # Use a semaphore to limit concurrent requests
     semaphore = asyncio.Semaphore(5 if use_api else 2)
@@ -886,13 +909,15 @@ async def google_search_async(search_queries: Union[str, List[str]], max_results
                             'start': start_index,
                             'num': num
                         }
-                        print(f"Requesting {num} results for '{query}' from Google API...")
+                        print(
+                            f"Requesting {num} results for '{query}' from Google API...")
 
                         async with aiohttp.ClientSession() as session:
                             async with session.get('https://www.googleapis.com/customsearch/v1', params=params) as response:
                                 if response.status != 200:
                                     error_text = await response.text()
-                                    print(f"API error: {response.status}, {error_text}")
+                                    print(
+                                        f"API error: {response.status}, {error_text}")
                                     break
 
                                 data = await response.json()
@@ -946,7 +971,7 @@ async def google_search_async(search_queries: Union[str, List[str]], max_results
                                         "start": start,
                                         "safe": safe,
                                     },
-                                    cookies = {
+                                    cookies={
                                         'CONSENT': 'PENDING+987',  # Bypasses the consent page
                                         'SOCS': 'CAESHAgBEhIaAB',
                                     }
@@ -955,16 +980,20 @@ async def google_search_async(search_queries: Union[str, List[str]], max_results
 
                                 # Parse results
                                 soup = BeautifulSoup(resp.text, "html.parser")
-                                result_block = soup.find_all("div", class_="ezO2md")
+                                result_block = soup.find_all(
+                                    "div", class_="ezO2md")
                                 new_results = 0
 
                                 for result in result_block:
                                     link_tag = result.find("a", href=True)
-                                    title_tag = link_tag.find("span", class_="CVA68e") if link_tag else None
-                                    description_tag = result.find("span", class_="FrIlee")
+                                    title_tag = link_tag.find(
+                                        "span", class_="CVA68e") if link_tag else None
+                                    description_tag = result.find(
+                                        "span", class_="FrIlee")
 
                                     if link_tag and title_tag and description_tag:
-                                        link = unquote(link_tag["href"].split("&")[0].replace("/url?q=", ""))
+                                        link = unquote(link_tag["href"].split("&")[
+                                                       0].replace("/url?q=", ""))
 
                                         if link in fetched_links:
                                             continue
@@ -997,7 +1026,8 @@ async def google_search_async(search_queries: Union[str, List[str]], max_results
                             return search_results
 
                         except Exception as e:
-                            print(f"Error in Google search for '{query}': {str(e)}")
+                            print(
+                                f"Error in Google search for '{query}': {str(e)}")
                             return []
 
                     # Execute search in thread pool
@@ -1030,7 +1060,8 @@ async def google_search_async(search_queries: Union[str, List[str]], max_results
                                     async with session.get(url, headers=headers, timeout=10) as response:
                                         if response.status == 200:
                                             # Check content type to handle binary files
-                                            content_type = response.headers.get('Content-Type', '').lower()
+                                            content_type = response.headers.get(
+                                                'Content-Type', '').lower()
 
                                             # Handle PDFs and other binary files
                                             if 'application/pdf' in content_type or 'application/octet-stream' in content_type:
@@ -1040,13 +1071,17 @@ async def google_search_async(search_queries: Union[str, List[str]], max_results
                                                 try:
                                                     # Try to decode as UTF-8 with replacements for non-UTF8 characters
                                                     html = await response.text(errors='replace')
-                                                    soup = BeautifulSoup(html, 'html.parser')
-                                                    result['raw_content'] = soup.get_text()
+                                                    soup = BeautifulSoup(
+                                                        html, 'html.parser')
+                                                    result['raw_content'] = soup.get_text(
+                                                    )
                                                 except UnicodeDecodeError as ude:
                                                     # Fallback if we still have decoding issues
-                                                    result['raw_content'] = f"[Could not decode content: {str(ude)}]"
+                                                    result[
+                                                        'raw_content'] = f"[Could not decode content: {str(ude)}]"
                                 except Exception as e:
-                                    print(f"Warning: Failed to fetch content for {url}: {str(e)}")
+                                    print(
+                                        f"Warning: Failed to fetch content for {url}: {str(e)}")
                                     result['raw_content'] = f"[Error fetching content: {str(e)}]"
                                 return result
 
@@ -1055,7 +1090,8 @@ async def google_search_async(search_queries: Union[str, List[str]], max_results
 
                         updated_results = await asyncio.gather(*fetch_tasks)
                         results = updated_results
-                        print(f"Fetched full content for {len(results)} results")
+                        print(
+                            f"Fetched full content for {len(results)} results")
 
                 return {
                     "query": query,
@@ -1086,6 +1122,7 @@ async def google_search_async(search_queries: Union[str, List[str]], max_results
         # Only shut down executor if it was created
         if executor:
             executor.shutdown(wait=False)
+
 
 async def scrape_pages(titles: List[str], urls: List[str]) -> str:
     """
@@ -1127,9 +1164,11 @@ async def scrape_pages(titles: List[str], urls: List[str]) -> str:
                         pages.append(markdown_content)
                     else:
                         # For non-HTML content, just mention the content type
-                        pages.append(f"Content type: {content_type} (not converted to markdown)")
+                        pages.append(
+                            f"Content type: {content_type} (not converted to markdown)")
                 else:
-                    pages.append(f"Error: Received status code {response.status_code}")
+                    pages.append(
+                        f"Error: Received status code {response.status_code}")
 
             except Exception as e:
                 # Handle any exceptions during fetch
@@ -1144,7 +1183,8 @@ async def scrape_pages(titles: List[str], urls: List[str]) -> str:
             formatted_output += f"FULL CONTENT:\n {page}"
             formatted_output += "\n\n" + "-" * 80 + "\n"
 
-    return  formatted_output
+    return formatted_output
+
 
 @tool
 async def duckduckgo_search(search_queries: List[str]):
@@ -1175,17 +1215,20 @@ async def duckduckgo_search(search_queries: List[str]):
                         if retry_count > 0:
                             # Random delay with exponential backoff
                             delay = backoff_factor ** retry_count + random.random()
-                            print(f"Retry {retry_count}/{max_retries} for query '{query}' after {delay:.2f}s delay")
+                            print(
+                                f"Retry {retry_count}/{max_retries} for query '{query}' after {delay:.2f}s delay")
                             time.sleep(delay)
 
                             # Add a random element to the query to bypass caching/rate limits
-                            modifiers = ['about', 'info', 'guide', 'overview', 'details', 'explained']
+                            modifiers = ['about', 'info', 'guide',
+                                         'overview', 'details', 'explained']
                             modified_query = f"{query} {random.choice(modifiers)}"
                         else:
                             modified_query = query
 
                         # Execute search
-                        ddg_results = list(ddgs.text(modified_query, max_results=5))
+                        ddg_results = list(
+                            ddgs.text(modified_query, max_results=5))
 
                         # Format results
                         for i, result in enumerate(ddg_results):
@@ -1193,7 +1236,8 @@ async def duckduckgo_search(search_queries: List[str]):
                                 'title': result.get('title', ''),
                                 'url': result.get('href', ''),
                                 'content': result.get('body', ''),
-                                'score': 1.0 - (i * 0.1),  # Simple scoring mechanism
+                                # Simple scoring mechanism
+                                'score': 1.0 - (i * 0.1),
                                 'raw_content': result.get('body', '')
                             })
 
@@ -1209,15 +1253,18 @@ async def duckduckgo_search(search_queries: List[str]):
                     # Store the exception and retry
                     last_exception = e
                     retry_count += 1
-                    print(f"DuckDuckGo search error: {str(e)}. Retrying {retry_count}/{max_retries}")
+                    print(
+                        f"DuckDuckGo search error: {str(e)}. Retrying {retry_count}/{max_retries}")
 
                     # If not a rate limit error, don't retry
                     if "Ratelimit" not in str(e) and retry_count >= 1:
-                        print(f"Non-rate limit error, stopping retries: {str(e)}")
+                        print(
+                            f"Non-rate limit error, stopping retries: {str(e)}")
                         break
 
             # If we reach here, all retries failed
-            print(f"All retries failed for query '{query}': {str(last_exception)}")
+            print(
+                f"All retries failed for query '{query}': {str(last_exception)}")
             # Return empty results but with query info preserved
             return {
                 'query': query,
@@ -1258,6 +1305,7 @@ async def duckduckgo_search(search_queries: List[str]):
         # Return a formatted error message if no valid URLs were found
         return "No valid search results found. Please try different search queries or use a different search API."
 
+
 @tool
 async def tavily_search(queries: List[str]) -> str:
     """
@@ -1294,13 +1342,15 @@ async def tavily_search(queries: List[str]) -> str:
         formatted_output += f"URL: {url}\n\n"
         formatted_output += f"SUMMARY:\n{result['content']}\n\n"
         if result.get('raw_content'):
-            formatted_output += f"FULL CONTENT:\n{result['raw_content'][:30000]}"  # Limit content size
+            # Limit content size
+            formatted_output += f"FULL CONTENT:\n{result['raw_content'][:30000]}"
         formatted_output += "\n\n" + "-" * 80 + "\n"
 
     if unique_results:
         return formatted_output
     else:
         return "No valid search results found. Please try different search queries or use a different search API."
+
 
 async def select_and_execute_search(search_api: str, query_list: list[str], params_to_pass: dict) -> str:
     """Select and execute the appropriate search API.

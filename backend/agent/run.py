@@ -1,7 +1,8 @@
-from backend.db import supabase
 from backend.agent.formats import FinalNewsArticle
 from backend.agent.final_writer_prompts import form_final_writer_system_prompt, topic_generator_system_prompt
 from backend.agent.graph import builder
+from backend.db import supabase
+
 import uuid
 from langgraph.types import Command
 from langgraph.checkpoint.memory import MemorySaver
@@ -12,9 +13,6 @@ import asyncio
 import os
 from dotenv import load_dotenv
 from langchain_community.tools.tavily_search import TavilySearchResults
-
-
-load_dotenv()
 
 
 claude_3_5_sonnet = ChatAnthropic(
