@@ -2,7 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "backend/main.py",
+      "src": "backend/vercel_handler.py",
       "use": "@vercel/python",
       "config": {
         "runtime": "python3.11",
@@ -13,7 +13,12 @@
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "backend/main.py"
+      "dest": "backend/vercel_handler.py"
     }
-  ]
+  ],
+  "functions": {
+    "backend/vercel_handler.py": {
+      "runtime": "python3.11"
+    }
+  }
 }

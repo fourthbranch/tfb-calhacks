@@ -21,6 +21,18 @@ from backend.security import get_api_key
 from backend.db import supabase
 
 
+@app.options("/{path:path}")
+async def options_handler():
+    """Handle OPTIONS requests for CORS preflight"""
+    return {"message": "OK"}
+
+
+@app.get("/health")
+def health_check():
+    """Health check endpoint that doesn't require authentication"""
+    return {"status": "healthy", "message": "API is running"}
+
+
 @app.get("/")
 def root(api_key: str = Depends(get_api_key)) -> Dict[str, Any]:
     """Root endpoint for the API"""
