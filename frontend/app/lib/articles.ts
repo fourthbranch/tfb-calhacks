@@ -32,7 +32,6 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
 
 export async function getAllArticles(): Promise<Article[]> {
   const res = await fetch(`${API_BASE}/articles`, {
-    mode: "no-cors",
     next: { revalidate: 60 },
     headers: createAuthHeaders(),
   });
@@ -61,7 +60,6 @@ export async function getArticleBySlug(
   slug: string
 ): Promise<Article | undefined> {
   const res = await fetch(`${API_BASE}/articles/${slug}`, {
-    mode: "no-cors",
     headers: createAuthHeaders(),
   });
   if (!res.ok) return undefined;

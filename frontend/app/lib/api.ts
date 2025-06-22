@@ -28,7 +28,6 @@ export interface UserUpdateRequest {
 export const api = {
   async checkUser(email: string): Promise<UserCheckResponse> {
     const response = await fetch(`${API_BASE_URL}/users/check`, {
-      mode: "no-cors",
       method: "POST",
       headers: createAuthHeaders(),
       body: JSON.stringify({ email }),
@@ -45,7 +44,6 @@ export const api = {
     userData: UserCreateRequest
   ): Promise<{ message: string; user_id: number }> {
     const response = await fetch(`${API_BASE_URL}/users/create`, {
-      mode: "no-cors",
       method: "POST",
       headers: createAuthHeaders(),
       body: JSON.stringify(userData),
@@ -66,7 +64,6 @@ export const api = {
     userData: UserUpdateRequest
   ): Promise<{ message: string }> {
     const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
-      mode: "no-cors",
       method: "PUT",
       headers: createAuthHeaders(),
       body: JSON.stringify(userData),
