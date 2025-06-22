@@ -22,7 +22,10 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://fourthbranch.vercel.app",
+        "https://fourthbranch-oyargw0z1-zichenzhang04s-projects.vercel.app",
+        "https://*.vercel.app",  # Allow all Vercel preview deployments
         "http://localhost:3000",
+        "http://localhost:3001",
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
