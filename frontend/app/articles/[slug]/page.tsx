@@ -48,9 +48,12 @@ export default function ArticlePage(props: PageProps) {
   const [article, setArticle] = useState<Article | null>(null);
   const [impactAnalysis, setImpactAnalysis] = useState<string | null>(null);
   const [loadingImpact, setLoadingImpact] = useState(false);
-  const [podcastAudio, setPodcastAudio] = useState<{ audio_data: string; transcript: string; duration_estimate: number } | null>(null);
+  const [podcastAudio, setPodcastAudio] = useState<{
+    audio_data: string;
+    transcript: string;
+    duration_estimate: number;
+  } | null>(null);
   const [loadingPodcast, setLoadingPodcast] = useState(false);
-  const [showPodcast, setShowPodcast] = useState(false);
   const [params, setParams] = useState<{ slug: string } | null>(null);
 
   useEffect(() => {
@@ -112,9 +115,7 @@ export default function ArticlePage(props: PageProps) {
         >
           {/* Optional Side Panel */}
           {article.opposite_view && (
-            <aside
-              className="w-1/4 bg-gray-100 p-4 rounded-lg shadow"
-            >
+            <aside className="w-1/4 bg-gray-100 p-4 rounded-lg shadow">
               <h2 className="text-xl font-bold mb-4">Different Perspectives</h2>
 
               {parseArticleContent(article.opposite_view).map((block, idx) => (
