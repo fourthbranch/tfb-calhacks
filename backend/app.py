@@ -108,9 +108,6 @@ def list_articles():
     # Sort articles by created_at in descending order
     articles_with_created_at.sort(key=lambda x: x["created_at"], reverse=True)
 
-    # Print the first article for debugging
-    print(f"First article with created_at: {articles_with_created_at[0]}")
-
     return articles_with_created_at
 
 
@@ -198,7 +195,6 @@ def gen_news_with_request(request: GenNewsWithRequestRequest) -> Dict[str, Any]:
             print(f"Error looking up user: {e}, using anonymous mode")
     
     for _ in range(1):
-        article_id = topic_generator(user_id=user_id, user_request=request.user_request)
         article_id = topic_generator(user_id=user_id, user_request=request.user_request)
         if article_id != -1:
             article_ids.append(article_id)
