@@ -65,7 +65,7 @@ def generate_report(topic_query: str) -> FinalNewsArticle:
     return report
 
 
-def topic_generator(user_id: int = -1, user_request: str = ""):
+def topic_generator(user_id: int = -1, user_request: str = "") -> int:
     # Fetch the information about the user: political leaning
     if user_id == -1:
         political_leaning = "neutral"  # TODO: Add a default political leaning
@@ -162,6 +162,8 @@ def topic_generator(user_id: int = -1, user_request: str = ""):
                 "relevant_topics": news_article.relevant_topics
             }).execute()
 
+        return -1
+
     else:
         # Get the user's preferred writing style
         preferred_writing_style = user_info.data[0].preferred_writing_style
@@ -199,3 +201,9 @@ def topic_generator(user_id: int = -1, user_request: str = ""):
             "topic_bias": political_leaning,
             "relevant_topics": news_article.relevant_topics
         }).execute()
+
+        # Return the newly generated article id
+        article_id = supabase.table("articles_new").select(
+            "*").eq("report_id", report_id).execute()
+        print(f"Article ID: {article_id.data[0]['id']}")
+        return article_id.data[0]['id']
