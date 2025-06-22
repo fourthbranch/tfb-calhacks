@@ -58,11 +58,12 @@ class ArticleDetail(BaseModel):
 class SubscribeRequest(BaseModel):
     email: str
 
-      
+
 class GenNewsWithRequestRequest(BaseModel):
     user_request: str
+    user_email: Optional[str] = None  # Add user email for personalization
 
-      
+
 class UserCheckRequest(BaseModel):
     email: str
 
@@ -106,9 +107,6 @@ def list_articles():
 
     # Sort articles by created_at in descending order
     articles_with_created_at.sort(key=lambda x: x["created_at"], reverse=True)
-
-    # Print the first article for debugging
-    print(f"First article with created_at: {articles_with_created_at[0]}")
 
     return articles_with_created_at
 
@@ -178,17 +176,32 @@ def gen_news() -> Dict[str, Any]:
     return {"message": "Generated news article"}
 
 
-@app.get("/gen_news_with_request")
+@app.post("/gen_news_with_request")
 def gen_news_with_request(request: GenNewsWithRequestRequest) -> Dict[str, Any]:
-    """Generate a topic for a news article with a user request"""
-    three_article_ids = []
-    for _ in range(3):
-        article_id = topic_generator(user_request=request.user_request)
+    """Generate a topic for a news article with a user request and preferences"""
+    article_ids = []
+    
+    # Try to find user by email for personalization
+    user_id = -1  # Default to anonymous
+    if request.user_email:
+        try:
+            user_res = supabase.table("users").select("id").eq("email", request.user_email).execute()
+            if user_res.data and len(user_res.data) > 0:
+                user_id = user_res.data[0]["id"]
+                print(f"Found user {user_id} for email {request.user_email}")
+            else:
+                print(f"No user found for email {request.user_email}, using anonymous mode")
+        except Exception as e:
+            print(f"Error looking up user: {e}, using anonymous mode")
+    
+    for _ in range(1):
+        article_id = topic_generator(user_id=user_id, user_request=request.user_request)
         if article_id != -1:
-            three_article_ids.append(article_id)
-    return {"article_ids": three_article_ids}
+            article_ids.append(article_id)
+    
+    return {"article_ids": article_ids}
 
-  
+
 @app.post("/users/check")
 def check_user(request: UserCheckRequest):
     """Check if a user exists by email"""
@@ -225,7 +238,7 @@ def create_user(request: UserCreateRequest):
             "additional_info": request.additional_info,
             "preferred_writing_style": request.preferred_writing_style
         }
-        
+
         res = supabase.table("users").insert(user_data).execute()
         if res.data and len(res.data) > 0:
             return {
@@ -255,7 +268,7 @@ def update_user(user_id: int, request: UserUpdateRequest):
             update_data["additional_info"] = request.additional_info
         if request.preferred_writing_style is not None:
             update_data["preferred_writing_style"] = request.preferred_writing_style
-        
+
         res = supabase.table("users").update(update_data).eq("id", user_id).execute()
         if res.data and len(res.data) > 0:
             return {"message": "User updated successfully"}
