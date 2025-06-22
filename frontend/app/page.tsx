@@ -34,7 +34,17 @@ export default function Home() {
     <div className="min-h-screen bg-white">
       <Header />
       <main className="container mx-auto px-4 py-8">
-        {articles.length > 0 && <ArticleGrid articles={articles} />}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Articles Section - Takes up 2/3 of the space on large screens */}
+          <div className="lg:col-span-2">
+            {articles.length > 0 && <ArticleGrid articles={articles} />}
+          </div>
+
+          {/* Chatbox Section - Takes up 1/3 of the space on large screens */}
+          <div className="lg:col-span-1">
+            <Chatbox />
+          </div>
+        </div>
       </main>
       <Footer />
     </div>
