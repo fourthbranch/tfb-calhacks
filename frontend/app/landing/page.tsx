@@ -82,6 +82,9 @@ export default function LandingPage() {
           <motion.h1
             variants={fadeIn}
             className="text-5xl md:text-7xl font-bold tracking-tighter mb-6 text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-400"
+            style={{ fontFamily: "Times New Roman, serif",
+              letterSpacing: "0.01em"
+             }} // Apply Times New Roman font
           >
             Unsilence The Truth.
           </motion.h1>
