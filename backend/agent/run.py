@@ -27,6 +27,120 @@ claude_3_7_sonnet = ChatAnthropic(
 )
 
 
+async def stream_report_generation(user_id: int, user_request: str):
+    """
+    Generates a news report and streams the process, yielding updates at each step.
+    """
+    yield {"step": "topic_generation", "status": "in_progress", "message": "Generating a relevant topic for you..."}
+
+    # Agent 1: Topic Generator
+    # Fetch user info
+    if user_id == -1:
+        political_leaning = "neutral"
+    else:
+        user_info_res = supabase.table("users").select("*").eq("id", user_id).execute()
+        political_leaning = user_info_res.data[0]["political_leaning"] if user_info_res.data else "neutral"
+
+    topic_agent = create_react_agent(model=claude_3_5_sonnet, tools=[TavilySearchResults()])
+    topic_messages = [
+        SystemMessage(content=topic_generator_system_prompt(political_leaning, user_request)),
+        HumanMessage(content="Generate a topic for a news article.")
+    ]
+    topic_response = await topic_agent.ainvoke({"messages": topic_messages})
+    topic_content = topic_response["messages"][-1].content
+    
+    yield {"step": "topic_generation", "status": "completed", "message": f"Topic chosen: '{topic_content}'"}
+
+    # Agent 2: Report Generator (LangGraph)
+    yield {"step": "report_planning", "status": "in_progress", "message": "Creating a detailed plan for the report..."}
+
+    checkpointer = MemorySaver()
+    graph = builder.compile(checkpointer=checkpointer)
+    thread = {"configurable": {"thread_id": str(uuid.uuid4()), "planner_provider": "anthropic", "planner_model": "claude-3-7-sonnet-latest", "writer_provider": "anthropic", "writer_model": "claude-3-7-sonnet-latest", "max_search_depth": 2, "number_of_queries": 2}}
+
+    async for event in graph.astream({"topic": topic_content}, thread, stream_mode="updates"):
+        if 'generate_report_plan' in event:
+            plan = event['generate_report_plan']['sections']
+            section_names = [section.name for section in plan]
+            yield {"step": "report_planning", "status": "completed", "message": "Report plan created.", "data": {"sections": section_names}}
+            yield {"step": "research", "status": "in_progress", "message": "Researching sections..."}
+
+        if '__interrupt__' in event:
+            break # Move to the next step
+
+    # Resume graph execution to perform research and writing
+    async for event in graph.astream(Command(resume=True), thread, stream_mode="updates"):
+        if 'write_section' in event:
+             yield {"step": "research", "status": "in_progress", "message": "Writing researched sections..."}
+
+    yield {"step": "research", "status": "completed", "message": "Finished researching and writing sections."}
+    
+    final_state = await graph.aget_state(thread)
+    report = final_state.values.get('final_report', "No report generated")
+
+    # Agent 3: Final Writer
+    yield {"step": "final_writing", "status": "in_progress", "message": "Generating the final article in your preferred style..."}
+
+    # ... (The logic for handling different writing styles and saving to DB will be here)
+    # For now, let's just yield the final report for simplicity in this step.
+    
+    # This part is complex, for now, let's just simulate the end.
+    # In a real implementation, we'd call the final writer and save to DB.
+    # For this task, we will just return the final generated report id
+    
+    # Save the report to the database FIRST and get the id
+    report_result = supabase.table("reports").insert({
+        "content": report,
+        "topic_bias": political_leaning
+    }).execute()
+    report_id = report_result.data[0]['id']
+
+    final_writer = claude_3_7_sonnet.with_structured_output(FinalNewsArticle)
+
+    if user_id == -1:
+        preferred_writing_style = ["depth", "formal", "straight"]
+    else:
+        user_info = supabase.table("users").select("*").eq("id", user_id).execute()
+        preferred_writing_style = user_info.data[0]["preferred_writing_style"]
+    
+    writing_style_str = ""
+    if "short" in preferred_writing_style:
+        writing_style_str += "short and concise summary that only cover the most important information\\n"
+    if "depth" in preferred_writing_style:
+        writing_style_str += "in-depth detailed analysis that includes every part of the report\\n"
+    if "informal" in preferred_writing_style:
+        writing_style_str += "informal and casual language written in a way that is easy to understand. Never use any jargon or technical terms. Never use formal words or phrases. Never use journalistic language. Never use any words that are not commonly used in everyday conversation.\\n"
+    if "formal" in preferred_writing_style:
+        writing_style_str += "formal and professional language written by a professional journalist\\n"
+    if "satirical" in preferred_writing_style:
+        writing_style_str += "all sentences should be satirical, witty and comedic language in the same style of the Daily Show by Jon Stewart and Trevor Noah. You should make the readers laugh and feel like they are watching a comedy show. You should start the article with a joke or a funny hook. You should end the article with a joke or a funny sentence.\\n"
+    if "straight" in preferred_writing_style:
+        writing_style_str += "straight-laced and objective language written by a professional journalist. Never use any witty or comedic language.\\n"
+
+    messages = [
+        SystemMessage(
+            content=form_final_writer_system_prompt(writing_style_str)),
+        HumanMessage(
+            content=f"You are given with this report:\\n{report}\\n\\nPlease write a news article based on the report.")
+    ]
+    news_article = final_writer.invoke(messages)
+    article_res = supabase.table("articles_new").insert({
+        "report_id": report_id,
+        "title": news_article.title,
+        "summary": news_article.summary,
+        "content": news_article.content,
+        "opposite_view": news_article.opposite_view,
+        "preferred_writing_style": preferred_writing_style,
+        "bias": news_article.bias,
+        "topic_bias": political_leaning,
+        "relevant_topics": news_article.relevant_topics
+    }).execute()
+    
+    article_id = article_res.data[0]['id']
+
+    yield {"step": "final_writing", "status": "completed", "message": "Article generated successfully!", "data": {"article_id": article_id}}
+
+
 def generate_report(topic_query: str) -> FinalNewsArticle:
     # Checkpointer for the graph approach
     checkpointer = MemorySaver()

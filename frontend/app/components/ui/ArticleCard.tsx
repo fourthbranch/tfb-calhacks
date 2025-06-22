@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Article } from "../../lib/articles";
+import { formatDate } from "../../lib/utils";
 
 interface ArticleCardProps {
   article: Article;
@@ -35,7 +36,9 @@ export default function ArticleCard({
           <span className="text-xs font-medium px-2 py-1 bg-foreground/5 rounded-full">
             {article.categories[0] || "Uncategorized"}
           </span>
-          <span className="text-xs text-foreground/60">{article.date}</span>
+          <span className="text-xs text-foreground/60">
+            {formatDate(article.date)}
+          </span>
         </div>
 
         <Link

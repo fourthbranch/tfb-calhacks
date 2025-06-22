@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Article } from "../../lib/articles";
+import { formatDate } from "../../lib/utils";
 
 interface FeaturedArticleProps {
   article: Article;
@@ -31,7 +32,9 @@ export default function FeaturedArticle({
           <span className="text-xs font-medium px-2 py-1 bg-white/20 text-white rounded-full backdrop-blur-sm">
             {article.categories[0] || "Uncategorized"}
           </span>
-          <span className="text-xs text-white/80">{article.date}</span>
+          <span className="text-xs text-white/80">
+            {formatDate(article.date)}
+          </span>
         </div>
 
         <Link

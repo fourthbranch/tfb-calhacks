@@ -1,4 +1,4 @@
-import { createAuthHeaders } from "./auth";
+import { createAuthHeaders, getApiKey } from "./auth";
 
 export interface Article {
   id: string;
@@ -32,15 +32,27 @@ const API_BASE = (
   process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000"
 ).replace(/\/$/, "");
 
-export async function getAllArticles(): Promise<Article[]> {
+export async function getAllArticlesDisplay(userEmail: string | null): Promise<{ foryou: Article[]; explore: Article[] }> {
+  // Get user email from localStorage
+  // const userEmail = localStorage.getItem('user_email');
+
   const res = await fetch(`${API_BASE}/articles`, {
     method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${getApiKey()}`,
+      "user_email": userEmail || "", // Pass user email in the header
+    },
     next: { revalidate: 60 },
-    headers: createAuthHeaders(),
   });
-  if (!res.ok) return [];
+
+
+  if (!res.ok) return { foryou: [], explore: [] };
+
   const data = await res.json();
-  return data.map(
+
+  // Map backend data to frontend Article structure
+  const foryou = data.user_preferred.map(
     (item: BackendArticle): Article => ({
       id: item.id || "",
       slug: item.slug || item.id?.toString() || "",
@@ -57,7 +69,28 @@ export async function getAllArticles(): Promise<Article[]> {
       bias: item.bias || "",
     })
   );
+
+  const explore = data.explore.map(
+    (item: BackendArticle): Article => ({
+      id: item.id || "",
+      slug: item.slug || item.id?.toString() || "",
+      title: item.title || "",
+      summary: item.summary || "",
+      content: item.content || "",
+      image:
+        item.image ||
+        `/image/politics_${Math.floor(Math.random() * 2) + 1}.jpg`,
+      categories: item.relevant_topics || ["US"],
+      date: item.created_at || "",
+      featured: false,
+      opposite_view: item.opposite_view || "",
+      bias: item.bias || "",
+    })
+  );
+  return { foryou, explore };
 }
+
+
 
 export async function getArticleBySlug(
   slug: string
@@ -83,45 +116,16 @@ export async function getArticleBySlug(
   };
 }
 
-export async function getArticlesByCategory(
-  category: string
-): Promise<Article[]> {
-  const all = await getAllArticles();
 
-  // log categories
-  console.log("categories:", all[0].categories);
-
-  return all.filter((article) =>
-    article.categories.some(
-      (cat) => cat.toLowerCase() === category.toLowerCase()
-    )
-  );
+export async function getArticlesForYou(userEmail: string | null): Promise<Article[]> {
+  const all = await getAllArticlesDisplay(userEmail);
+  const articles = all.foryou
+  return articles;
 }
 
-export async function getFeaturedArticles(): Promise<Article[]> {
-  // For now, just return the first 2 as featured
-  const all = await getAllArticles();
-  return all.slice(0, 3);
+
+export async function getArticlesExplore(userEmail: string | null): Promise<Article[]> {
+  const all = await getAllArticlesDisplay(userEmail);
+  const articles = all.explore
+  return articles;
 }
-
-export async function getRecentArticles(count: number = 4): Promise<Article[]> {
-  const all = await getAllArticles();
-  return all.slice(0, count);
-}
-
-// export function getRelatedArticles(
-//   currentSlug: string,
-//   count: number = 3
-// ): Article[] {
-//   const currentArticle = getArticleBySlug(currentSlug);
-//   if (!currentArticle) return [];
-
-//   return articles
-//     .filter(
-//       (article) =>
-//         article.slug !== currentSlug &&
-//         (article.category === currentArticle.category ||
-//           article.title.includes(currentArticle.title.substring(0, 10)))
-//     )
-//     .slice(0, count);
-// }
