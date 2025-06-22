@@ -6,19 +6,7 @@ import Header from "../../components/ui/Header";
 import Footer from "../../components/ui/Footer";
 import ArticleCard from "../../components/ui/ArticleCard";
 import { getArticleBySlug, type Article } from "../../lib/articles";
-
-// Format date to be human readable
-function formatDate(dateString: string) {
-  const date = new Date(dateString);
-  return new Intl.DateTimeFormat("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  }).format(date);
-}
+import { formatDate } from "../../lib/utils";
 
 // Helper to parse content blocks for source URLs and notes
 function parseArticleContent(content: string) {
