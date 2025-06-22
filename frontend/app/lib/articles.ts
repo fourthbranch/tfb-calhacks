@@ -28,10 +28,13 @@ interface BackendArticle {
 }
 
 // Backend API base URL
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+const API_BASE = (
+  process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000"
+).replace(/\/$/, "");
 
 export async function getAllArticles(): Promise<Article[]> {
   const res = await fetch(`${API_BASE}/articles`, {
+    method: "GET",
     next: { revalidate: 60 },
     headers: createAuthHeaders(),
   });
