@@ -291,8 +291,8 @@ export default function Chatbox() {
             </div>
           ))}
           {isLoading && renderPipeline()}
-          <div ref={messagesEndRef} />
         </div>
+        <div ref={messagesEndRef} />
       </div>
       <div className="p-4 border-t border-gray-200">
         <form onSubmit={handleSubmit} className="flex items-center gap-2">
