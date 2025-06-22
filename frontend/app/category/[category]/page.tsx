@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Header from "../../components/ui/Header";
 import Footer from "../../components/ui/Footer";
 import ArticleGrid from "../../components/sections/ArticleGrid";
+import Chatbox from "../../components/sections/Chatbox";
 import NewsletterForm from "../../components/ui/NewsletterForm";
 import {
   getArticlesExplore,
@@ -20,8 +21,11 @@ function formatCategoryName(category: string): string {
   // Decode URL-encoded strings
   const decoded = decodeURIComponent(category);
 
-  // Special case for "foryou"
-  if (decoded.toLowerCase() === "foryou") {
+  // Special case for "foryou" or "for you"
+  if (
+    decoded.toLowerCase() === "foryou" ||
+    decoded.toLowerCase() === "for you"
+  ) {
     return "For You";
   }
 
@@ -42,6 +46,7 @@ export default function CategoryPage(props: PageProps) {
   const [articles, setArticles] = useState<Article[]>([]);
   const [categoryName, setCategoryName] = useState("");
   const [hasEmail, setHasEmail] = useState<boolean | null>(null);
+  const [decodedCategory, setDecodedCategory] = useState("");
 
   useEffect(() => {
     const loadData = async () => {
@@ -60,15 +65,19 @@ export default function CategoryPage(props: PageProps) {
       setCategoryName(formatCategoryName(params.category));
 
       // Decode the category parameter for comparison
-      const decodedCategory = decodeURIComponent(params.category);
+      const decoded = decodeURIComponent(params.category);
+      setDecodedCategory(decoded);
 
       let articlesData = [];
-      if (decodedCategory.toLowerCase() === "for you") {
+      if (
+        decoded.toLowerCase() === "for you" ||
+        decoded.toLowerCase() === "foryou"
+      ) {
         articlesData = await getArticlesForYou(email);
-      } else if (decodedCategory.toLowerCase() === "explore") {
+      } else if (decoded.toLowerCase() === "explore") {
         articlesData = await getArticlesExplore(email);
       } else {
-        throw new Error(`Unknown category: ${decodedCategory}`);
+        throw new Error(`Unknown category: ${decoded}`);
       }
 
       setArticles(articlesData);
@@ -86,6 +95,14 @@ export default function CategoryPage(props: PageProps) {
 
       <main className="container mx-auto px-4 py-6">
         <h1 className="text-3xl font-bold mb-8">{categoryName}</h1>
+
+        {/* Show Chatbox for "For You" category */}
+        {(decodedCategory.toLowerCase() === "for you" ||
+          decodedCategory.toLowerCase() === "foryou") && (
+          <div className="mb-8">
+            <Chatbox />
+          </div>
+        )}
 
         {/* Articles Grid */}
         <ArticleGrid articles={articles} title={`Latest ${categoryName}`} />
