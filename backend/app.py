@@ -40,7 +40,7 @@ class ArticleListItem(BaseModel):
     title: str
     summary: Optional[str] = None
     created_at: Optional[str] = None
-    relevant_topics: Optional[list] = None
+    relevant_topics: Optional[list[str]] = None
 
 
 class ArticleDetail(BaseModel):
@@ -50,7 +50,9 @@ class ArticleDetail(BaseModel):
     content: str
     created_at: Optional[str] = None
     metadata: Optional[dict] = None
-    relevant_topics: Optional[list] = None
+    relevant_topics: Optional[list[str]] = None
+    bias: Optional[str] = None
+    opposite_view: Optional[str] = None
 
 
 class SubscribeRequest(BaseModel):
@@ -84,13 +86,31 @@ class UserUpdateRequest(BaseModel):
 
 @app.get("/articles", response_model=List[ArticleListItem])
 def list_articles():
-    res = supabase.table("articles").select(
-        "id, title, summary, relevant_topics, created_at").order("created_at", desc=True).execute()
-    if not res.data:
+    # Fetch articles from articles_new
+    articles_res = supabase.table("articles_new").select(
+        "id, title, summary, relevant_topics, bias,   opposite_view, report_id"
+    ).execute()
+
+    if not articles_res.data:
         return []
-    # print the first article
-    print(f"First article: {res.data[0]}")
-    return res.data
+
+    # Fetch created_at for each article using report_id
+    articles_with_created_at = []
+    for article in articles_res.data:
+        report_res = supabase.table("reports").select("created_at").eq("id", article["report_id"]).single().execute()
+        if report_res.data:
+            article["created_at"] = report_res.data["created_at"]
+        else:
+            article["created_at"] = None  # Handle case where report is not found
+        articles_with_created_at.append(article)
+
+    # Sort articles by created_at in descending order
+    articles_with_created_at.sort(key=lambda x: x["created_at"], reverse=True)
+
+    # Print the first article for debugging
+    print(f"First article with created_at: {articles_with_created_at[0]}")
+
+    return articles_with_created_at
 
 
 @app.get("/articles/{article_id}", response_model=ArticleDetail)
@@ -107,10 +127,16 @@ def get_article(article_id: int):
         supabase.table("global_metrics").update(
             {"value": current + 1}).eq("key", "total_page_views").execute()
 
-    res = supabase.table("articles").select(
+    res = supabase.table("articles_new").select(
         "*", count="exact").eq("id", article_id).single().execute()
     if not res.data:
         raise HTTPException(status_code=404, detail="Article not found")
+    report_res = supabase.table("reports").select("created_at").eq("id", res.data["report_id"]).single().execute()
+    if report_res.data:
+        res.data["created_at"] = report_res.data["created_at"]
+    else:
+        res.data["created_at"] = None  # Handle case where report is not found
+
     return res.data
 
 
