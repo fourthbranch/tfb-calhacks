@@ -12,7 +12,7 @@ Fourth Branch is an AI news platform that builds personalized, bias-labeled stor
 - **Backend**: FastAPI, Python
 - **Database**: Supabase(PostgreSQL)
 - **LLMs**: LangGraph, Claude4, OpenAI, Gemini
-
+<!-- 
 ## 📁 Project Structure
 
 /
@@ -20,7 +20,7 @@ Fourth Branch is an AI news platform that builds personalized, bias-labeled stor
 ├── backend/ # API and LangGraph agents
 │ ├── agent/ # Core AI pipeline (LangGraph)
 │ └── app.py # Backend DB models and endpoints
-└── db/ # SQL schema, seed scripts, and migrations
+└── db/ # SQL schema, seed scripts, and migrations -->
 
 ## 🧠 Key Folders
 frontend/: Next.js-based UI with user interest input, main page and article view.
@@ -30,7 +30,7 @@ backend/agent/: Handles the entire news generation process using three AI agents
 db/: SQL scripts and schema for PostgreSQL.
 
 ## 💡 News Generation Workflow
-
+<img src="./assets/news_generation_pipeline.png" width="600"/>
 
 ## 
 

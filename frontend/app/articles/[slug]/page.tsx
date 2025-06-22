@@ -1,11 +1,18 @@
-import React from "react";
+"use client";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import Header from "../../components/ui/Header";
 import Footer from "../../components/ui/Footer";
 import ArticleCard from "../../components/ui/ArticleCard";
-import { getArticleBySlug, type Article } from "../../lib/articles";
+import PodcastPlayer from "../../components/ui/PodcastPlayer";
+import {
+  getArticleBySlug,
+  getImpactAnalysis,
+  getPodcastAudio,
+  type Article,
+} from "../../lib/articles";
 import { formatDate } from "../../lib/utils";
 
 // Helper to parse content blocks for source URLs and notes
@@ -33,16 +40,62 @@ function parseArticleContent(content: string) {
   });
 }
 
-type PageProps = {
+interface PageProps {
   params: Promise<{ slug: string }>;
-};
+}
 
-export default async function ArticlePage(props: PageProps) {
-  const params = await props.params;
-  const article = await getArticleBySlug(params.slug);
+export default function ArticlePage(props: PageProps) {
+  const [article, setArticle] = useState<Article | null>(null);
+  const [impactAnalysis, setImpactAnalysis] = useState<string | null>(null);
+  const [loadingImpact, setLoadingImpact] = useState(false);
+  const [podcastAudio, setPodcastAudio] = useState<{ audio_data: string; transcript: string; duration_estimate: number } | null>(null);
+  const [loadingPodcast, setLoadingPodcast] = useState(false);
+  const [showPodcast, setShowPodcast] = useState(false);
+  const [params, setParams] = useState<{ slug: string } | null>(null);
 
-  if (!article) {
-    notFound();
+  useEffect(() => {
+    const loadArticle = async () => {
+      const resolvedParams = await props.params;
+      setParams(resolvedParams);
+
+      const articleData = await getArticleBySlug(resolvedParams.slug);
+      if (!articleData) {
+        notFound();
+      }
+      setArticle(articleData);
+
+      // Get user email and fetch impact analysis and podcast audio
+      const userEmail = localStorage.getItem("user_email");
+      if (userEmail && articleData.id) {
+        // Load impact analysis
+        setLoadingImpact(true);
+        try {
+          const analysis = await getImpactAnalysis(articleData.id, userEmail);
+          setImpactAnalysis(analysis);
+        } catch (error) {
+          console.error("Error loading impact analysis:", error);
+        } finally {
+          setLoadingImpact(false);
+        }
+
+        // Load podcast audio
+        setLoadingPodcast(true);
+        try {
+          const audio = await getPodcastAudio(articleData.id, userEmail);
+          setPodcastAudio(audio);
+        } catch (error) {
+          console.error("Error loading podcast audio:", error);
+        } finally {
+          setLoadingPodcast(false);
+        }
+      }
+    };
+
+    loadArticle();
+  }, [props.params]);
+
+  if (!article || !params) {
+    return <div>Loading...</div>;
   }
 
   const relatedArticles: Article[] = [];
@@ -60,12 +113,7 @@ export default async function ArticlePage(props: PageProps) {
           {/* Optional Side Panel */}
           {article.opposite_view && (
             <aside
-              className="w-1/4 bg-gray-100 p-4 rounded-lg shadow sticky self-start"
-              style={{
-                top: "15rem", // Stick 32px from top when scrolling
-                maxHeight: "calc(100vh - 4rem)", // Limit height to viewport minus top offset
-                overflowY: "auto", // Only scroll if content is too long
-              }}
+              className="w-1/4 bg-gray-100 p-4 rounded-lg shadow"
             >
               <h2 className="text-xl font-bold mb-4">Different Perspectives</h2>
 
@@ -155,6 +203,51 @@ export default async function ArticlePage(props: PageProps) {
               <p className="text-xl text-foreground/80 mb-6 font-serif">
                 {article.summary}
               </p>
+
+              {/* Podcast Player Section */}
+              {podcastAudio && (
+                <div className="mb-6">
+                  <PodcastPlayer
+                    audioData={podcastAudio.audio_data}
+                    transcript={podcastAudio.transcript}
+                    durationEstimate={podcastAudio.duration_estimate}
+                  />
+                </div>
+              )}
+
+              {loadingPodcast && (
+                <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border border-purple-200 dark:border-purple-700 p-6 rounded-xl shadow-lg mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
+                    <span className="text-purple-800 dark:text-purple-200">
+                      Generating podcast audio...
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Impact Analysis Section */}
+              {impactAnalysis && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-4 mb-6 rounded-r-lg">
+                  <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">
+                    How will this impact you?
+                  </h3>
+                  <p className="text-blue-700 dark:text-blue-300">
+                    {impactAnalysis}
+                  </p>
+                </div>
+              )}
+
+              {loadingImpact && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-4 mb-6 rounded-r-lg">
+                  <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">
+                    How will this impact you?
+                  </h3>
+                  <p className="text-blue-700 dark:text-blue-300">
+                    Analyzing personal impact...
+                  </p>
+                </div>
+              )}
             </header>
 
             {/* Featured Image */}
