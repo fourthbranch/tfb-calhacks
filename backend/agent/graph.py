@@ -1,6 +1,4 @@
 from typing import Literal
-import sys
-import os
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
@@ -8,7 +6,7 @@ from langgraph.constants import Send
 from langgraph.graph import START, END, StateGraph
 from langgraph.types import interrupt, Command
 
-from backend.agent.state import (
+from .state import (
     ReportStateInput,
     ReportStateOutput,
     Sections,
@@ -18,7 +16,7 @@ from backend.agent.state import (
     Queries,
     Feedback
 )
-from backend.agent.prompts import (
+from .prompts import (
     report_planner_query_writer_instructions,
     report_planner_instructions,
     query_writer_instructions,
@@ -27,8 +25,8 @@ from backend.agent.prompts import (
     section_grader_instructions,
     section_writer_inputs
 )
-from backend.agent.configuration import Configuration
-from backend.agent.utils import (
+from .configuration import Configuration
+from .utils import (
     format_sections,
     get_config_value,
     get_search_params,

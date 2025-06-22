@@ -1,4 +1,5 @@
-from backend.db import supabase
+from ..db import supabase
+
 
 def form_final_writer_system_prompt(writing_style: str):
     return f"""
@@ -62,9 +63,11 @@ def form_final_writer_system_prompt(writing_style: str):
     </relevant_topics>
     """
 
+
 def topic_generator_system_prompt(political_leaning: str, user_request: str):
     # Get the existing topics that were already written
-    existing_topics = supabase.table("existing_topics").select("content").execute()
+    existing_topics = supabase.table(
+        "existing_topics").select("content").execute()
     topics_list = [topic["content"] for topic in existing_topics.data]
 
     if user_request != "":

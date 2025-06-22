@@ -14,18 +14,19 @@ This module is the main entry point for the API.
 from fastapi import HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional, Dict, Any
-from .db import supabase
 from pydantic import BaseModel
 
-from .agent import topic_generator
+from .agent.run import topic_generator
 from .app import app
 from .security import get_api_key
+from .db import supabase
 
 
 @app.get("/")
 def root(api_key: str = Depends(get_api_key)) -> Dict[str, Any]:
     """Root endpoint for the API"""
     return {"message": "Hello, World!"}
+
 
 class ArticleListItem(BaseModel):
     id: int
@@ -324,4 +325,3 @@ def update_user(user_id: int, request: UserUpdateRequest, api_key: str = Depends
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to update user: {str(e)}")
-
