@@ -13,14 +13,19 @@ This module handles FastAPI app initialization and configuration.
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import os
 
 app = FastAPI(title="The Fourth Branch API")
 
 # Add CORS middleware
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=["*"],  # Allow all origins
-#     allow_credentials=True,
-#     allow_methods=["*"],  # Allow all methods
-#     allow_headers=["*"],  # Allow all headers
-# )
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://fourthbranch.vercel.app",
+        "http://localhost:3000",
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+)

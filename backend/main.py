@@ -27,6 +27,18 @@ def root() -> Dict[str, Any]:
     return {"message": "Hello, World!"}
 
 
+@app.options("/{full_path:path}")
+async def options_handler():
+    """Handle OPTIONS requests for CORS preflight"""
+    return {"message": "OK"}
+
+
+@app.get("/cors-test")
+def cors_test() -> Dict[str, Any]:
+    """Test endpoint for CORS configuration"""
+    return {"message": "CORS is working!", "status": "success"}
+
+
 class ArticleListItem(BaseModel):
     id: int
     title: str
@@ -244,19 +256,23 @@ def gen_news_with_request(request: GenNewsWithRequestRequest, api_key: str = Dep
 @app.post("/users/check")
 def check_user(request: UserCheckRequest, api_key: str = Depends(get_api_key)):
     """Check if a user exists by email"""
+    print(f"Received check_user request for email: {request.email}")
     try:
         res = supabase.table("users").select(
             "id, email").eq("email", request.email).execute()
         if res.data and len(res.data) > 0:
             user = res.data[0]
+            print(f"User found: {user['id']}")
             return {
                 "exists": True,
                 "onboarding_completed": True,  # Assume completed if user exists
                 "user_id": user["id"]
             }
         else:
+            print("User not found")
             return {"exists": False, "onboarding_completed": False}
     except Exception as e:
+        print(f"Error in check_user: {e}")
         raise HTTPException(
             status_code=500, detail=f"Failed to check user: {str(e)}")
 
