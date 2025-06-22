@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { createAuthHeaders } from "../../lib/auth";
 
 export default function NewsletterForm() {
   return (
@@ -28,9 +29,7 @@ export default function NewsletterForm() {
               const url = `${baseUrl}/subscribe`.replace(/([^:]\/)\/+/g, "$1");
               const response = await fetch(url, {
                 method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
+                headers: createAuthHeaders(),
                 body: JSON.stringify({ email }),
                 credentials: "include",
                 mode: "cors",

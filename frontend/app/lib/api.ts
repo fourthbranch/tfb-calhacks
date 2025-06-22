@@ -1,4 +1,6 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+import { createAuthHeaders } from "./auth";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export interface UserCheckResponse {
   exists: boolean;
@@ -26,10 +28,8 @@ export interface UserUpdateRequest {
 export const api = {
   async checkUser(email: string): Promise<UserCheckResponse> {
     const response = await fetch(`${API_BASE_URL}/users/check`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      method: "POST",
+      headers: createAuthHeaders(),
       body: JSON.stringify({ email }),
     });
 
@@ -40,37 +40,42 @@ export const api = {
     return response.json();
   },
 
-  async createUser(userData: UserCreateRequest): Promise<{ message: string; user_id: number }> {
+  async createUser(
+    userData: UserCreateRequest
+  ): Promise<{ message: string; user_id: number }> {
     const response = await fetch(`${API_BASE_URL}/users/create`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      method: "POST",
+      headers: createAuthHeaders(),
       body: JSON.stringify(userData),
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.detail || `Failed to create user: ${response.statusText}`);
+      throw new Error(
+        error.detail || `Failed to create user: ${response.statusText}`
+      );
     }
 
     return response.json();
   },
 
-  async updateUser(userId: number, userData: UserUpdateRequest): Promise<{ message: string }> {
+  async updateUser(
+    userId: number,
+    userData: UserUpdateRequest
+  ): Promise<{ message: string }> {
     const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      method: "PUT",
+      headers: createAuthHeaders(),
       body: JSON.stringify(userData),
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.detail || `Failed to update user: ${response.statusText}`);
+      throw new Error(
+        error.detail || `Failed to update user: ${response.statusText}`
+      );
     }
 
     return response.json();
   },
-}; 
+};

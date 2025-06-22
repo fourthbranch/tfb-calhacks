@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { createAuthHeadersWithAccept } from "../../lib/auth";
 
 const categories = [
   "Politics",
@@ -25,10 +26,7 @@ export default function Header() {
     const url = `${baseUrl}/metrics/page_views`.replace(/([^:]\/)\/+/g, "$1");
     fetch(url, {
       method: "GET",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
+      headers: createAuthHeadersWithAccept(),
       credentials: "include",
       mode: "cors",
     })

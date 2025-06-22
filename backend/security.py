@@ -17,6 +17,7 @@ import os
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
+
 async def get_api_key(credentials: HTTPAuthorizationCredentials = Security(bearer_scheme)) -> str:
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise HTTPException(

@@ -2,10 +2,10 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import Header from "@/components/ui/Header";
-import Footer from "@/components/ui/Footer";
-import ArticleCard from "@/components/ui/ArticleCard";
-import { getArticleBySlug, type Article } from "@/lib/articles";
+import Header from "../../components/ui/Header";
+import Footer from "../../components/ui/Footer";
+import ArticleCard from "../../components/ui/ArticleCard";
+import { getArticleBySlug, type Article } from "../../lib/articles";
 
 // Format date to be human readable
 function formatDate(dateString: string) {
@@ -62,61 +62,65 @@ export default async function ArticlePage(props: PageProps) {
   return (
     <div className="min-h-screen">
       <Header />
-  
+
       <main className="container mx-auto px-4 py-8">
-      <div
-        className={`flex ${
-          article.opposite_view ? "flex-row" : "flex-col"
-        } gap-8`}
-      >
+        <div
+          className={`flex ${
+            article.opposite_view ? "flex-row" : "flex-col"
+          } gap-8`}
+        >
           {/* Optional Side Panel */}
           {article.opposite_view && (
-          <aside 
-            className="w-1/4 bg-gray-100 p-4 rounded-lg shadow sticky self-start"
-            style={{
-               top: "15rem", // Stick 32px from top when scrolling
-               maxHeight: "calc(100vh - 4rem)", // Limit height to viewport minus top offset
-              overflowY: "auto", // Only scroll if content is too long
-            }}
-          >
-            <h2 className="text-xl font-bold mb-4">Different Perspectives</h2>
+            <aside
+              className="w-1/4 bg-gray-100 p-4 rounded-lg shadow sticky self-start"
+              style={{
+                top: "15rem", // Stick 32px from top when scrolling
+                maxHeight: "calc(100vh - 4rem)", // Limit height to viewport minus top offset
+                overflowY: "auto", // Only scroll if content is too long
+              }}
+            >
+              <h2 className="text-xl font-bold mb-4">Different Perspectives</h2>
 
-            {parseArticleContent(article.opposite_view).map((block, idx) => (
-              <div key={idx} className="relative group mb-4 flex flex-col items-start">
-                {/* Block Text */}
-                <span>{block.text}</span>
+              {parseArticleContent(article.opposite_view).map((block, idx) => (
+                <div
+                  key={idx}
+                  className="relative group mb-4 flex flex-col items-start"
+                >
+                  {/* Block Text */}
+                  <span>{block.text}</span>
 
-                {/* Source Information */}
-                {(block.sourceUrl || block.note) && (
-                  <div className="mt-2 bg-yellow-100 dark:bg-yellow-700 text-xs px-2 py-1 rounded shadow max-w-xs">
-                  {block.sourceUrl && (
-                    <a
-                      href={block.sourceUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline text-blue-600 dark:text-blue-400 block"
-                    >
-                      Source
-                    </a>
-                  )}
-                  {block.note && (
-                    <span className="italic text-gray-600 dark:text-gray-300 block">
-                      <span className="font-medium">AI reasoning:</span> {block.note}
-                    </span>
+                  {/* Source Information */}
+                  {(block.sourceUrl || block.note) && (
+                    <div className="mt-2 bg-yellow-100 dark:bg-yellow-700 text-xs px-2 py-1 rounded shadow max-w-xs">
+                      {block.sourceUrl && (
+                        <a
+                          href={block.sourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline text-blue-600 dark:text-blue-400 block"
+                        >
+                          Source
+                        </a>
+                      )}
+                      {block.note && (
+                        <span className="italic text-gray-600 dark:text-gray-300 block">
+                          <span className="font-medium">AI reasoning:</span>{" "}
+                          {block.note}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
-                )}
-              </div>
-            ))}
-          </aside>)}
+              ))}
+            </aside>
+          )}
 
           {/* Main Article Content */}
           <article
-          className={`${
-            article.opposite_view ? "w-3/4" : "max-w-4xl mx-auto"
-          }`}
+            className={`${
+              article.opposite_view ? "w-3/4" : "max-w-4xl mx-auto"
+            }`}
           >
-
             {/* Article Header */}
             <header className="mb-8">
               <div className="flex items-center gap-3 mb-4">
@@ -132,38 +136,39 @@ export default async function ArticlePage(props: PageProps) {
                   {formatDate(article.date)}
                 </span>
               </div>
-  
+
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6">
                 {article.title}
               </h1>
 
               {/* Political Bias Section */}
-            <div className="flex items-start gap-4 mb-6">
-              {["liberal", "neutral", "conservative"].map((bias) => {
-                console.log("Current article.bias:", article.bias); // Debugging output
-                return (
-                  <div
-                    key={bias}
-                    className={`px-4 py-2 text-sm font-medium cursor-pointer ${
-                      article.bias === bias.toLowerCase()
-                        ? "bg-gray-700 text-white"
-                        : "bg-gray-200 text-gray-600"
-                    }`}
-                    style={{
-                      transition: "background-color 0.3s ease, color 0.3s ease",
-                    }}
-                  >
-                    {bias}
-                  </div>
-                );
-              })}
-            </div>
-  
+              <div className="flex items-start gap-4 mb-6">
+                {["liberal", "neutral", "conservative"].map((bias) => {
+                  console.log("Current article.bias:", article.bias); // Debugging output
+                  return (
+                    <div
+                      key={bias}
+                      className={`px-4 py-2 text-sm font-medium cursor-pointer ${
+                        article.bias === bias.toLowerCase()
+                          ? "bg-gray-700 text-white"
+                          : "bg-gray-200 text-gray-600"
+                      }`}
+                      style={{
+                        transition:
+                          "background-color 0.3s ease, color 0.3s ease",
+                      }}
+                    >
+                      {bias}
+                    </div>
+                  );
+                })}
+              </div>
+
               <p className="text-xl text-foreground/80 mb-6 font-serif">
                 {article.summary}
               </p>
             </header>
-  
+
             {/* Featured Image */}
             <div className="aspect-[16/9] relative rounded-lg overflow-hidden mb-8">
               <Image
@@ -175,7 +180,7 @@ export default async function ArticlePage(props: PageProps) {
                 priority
               />
             </div>
-  
+
             {/* Article Content */}
             <div className="prose prose-lg max-w-none dark:prose-invert prose-headings:font-bold prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-img:rounded-lg">
               {parseArticleContent(article.content).map((block, idx) => (
@@ -204,7 +209,7 @@ export default async function ArticlePage(props: PageProps) {
                 </div>
               ))}
             </div>
-  
+
             {/* Article Footer */}
             <div className="mt-12 pt-8 border-t border-black/[.08] dark:border-white/[.145]">
               <div className="flex flex-wrap items-center justify-between gap-4">
@@ -217,8 +222,8 @@ export default async function ArticlePage(props: PageProps) {
               </div>
             </div>
           </article>
-      </div>
-  
+        </div>
+
         {/* Related Articles */}
         {relatedArticles.length > 0 && (
           <section className="max-w-4xl mx-auto mt-16">
@@ -231,7 +236,7 @@ export default async function ArticlePage(props: PageProps) {
           </section>
         )}
       </main>
-  
+
       <Footer />
     </div>
   );

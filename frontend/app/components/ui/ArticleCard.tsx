@@ -1,7 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Article } from "@/app/lib/articles";
+import { Article } from "../../lib/articles";
 
 interface ArticleCardProps {
   article: Article;

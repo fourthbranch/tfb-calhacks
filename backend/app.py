@@ -11,13 +11,13 @@
 This module handles FastAPI app initialization and configuration.
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional, Dict, Any
 from .db import supabase
 from pydantic import BaseModel
 from backend.agent import topic_generator
-
+from backend.security import get_api_key
 
 app = FastAPI(title="The Fourth Branch API")
 
@@ -86,7 +86,7 @@ class UserUpdateRequest(BaseModel):
 
 
 @app.get("/articles", response_model=List[ArticleListItem])
-def list_articles():
+def list_articles(api_key: str = Depends(get_api_key)):
     # Fetch articles with created_at using a JOIN query
     try:
         articles_res = supabase.table("articles_new").select(
@@ -133,7 +133,7 @@ def list_articles():
 
 
 @app.get("/articles/{article_id}", response_model=ArticleDetail)
-def get_article(article_id: int):
+def get_article(article_id: int, api_key: str = Depends(get_api_key)):
     # Increment page view counter robustly
     res = supabase.table("global_metrics").select("value").eq(
         "key", "total_page_views").limit(1).execute()
@@ -180,7 +180,7 @@ def get_article(article_id: int):
 
 
 @app.get("/metrics/page_views")
-def get_page_views():
+def get_page_views(api_key: str = Depends(get_api_key)):
     res = supabase.table("global_metrics").select("value").eq(
         "key", "total_page_views").limit(1).execute()
     if not res.data or len(res.data) == 0:
@@ -189,7 +189,7 @@ def get_page_views():
 
 
 @app.post("/subscribe")
-def subscribe(request: SubscribeRequest):
+def subscribe(request: SubscribeRequest, api_key: str = Depends(get_api_key)):
     # Validate email format
     if not "@" in request.email or not "." in request.email:
         raise HTTPException(status_code=400, detail="Invalid email format")
@@ -211,7 +211,7 @@ def subscribe(request: SubscribeRequest):
 
 
 @app.get("/gen_news")
-def gen_news() -> Dict[str, Any]:
+def gen_news(api_key: str = Depends(get_api_key)) -> Dict[str, Any]:
     """Generate a topic for a news article"""
     for _ in range(3):
         topic_generator()
@@ -219,7 +219,7 @@ def gen_news() -> Dict[str, Any]:
 
 
 @app.post("/gen_news_with_request")
-def gen_news_with_request(request: GenNewsWithRequestRequest) -> Dict[str, Any]:
+def gen_news_with_request(request: GenNewsWithRequestRequest, api_key: str = Depends(get_api_key)) -> Dict[str, Any]:
     """Generate a topic for a news article with a user request and preferences"""
     article_ids = []
 
@@ -250,7 +250,7 @@ def gen_news_with_request(request: GenNewsWithRequestRequest) -> Dict[str, Any]:
 
 
 @app.post("/users/check")
-def check_user(request: UserCheckRequest):
+def check_user(request: UserCheckRequest, api_key: str = Depends(get_api_key)):
     """Check if a user exists by email"""
     try:
         res = supabase.table("users").select(
@@ -270,7 +270,7 @@ def check_user(request: UserCheckRequest):
 
 
 @app.post("/users/create")
-def create_user(request: UserCreateRequest):
+def create_user(request: UserCreateRequest, api_key: str = Depends(get_api_key)):
     """Create a new user"""
     try:
         # Check if user already exists
@@ -306,7 +306,7 @@ def create_user(request: UserCreateRequest):
 
 
 @app.put("/users/{user_id}")
-def update_user(user_id: int, request: UserUpdateRequest):
+def update_user(user_id: int, request: UserUpdateRequest, api_key: str = Depends(get_api_key)):
     """Update user preferences"""
     try:
         update_data = {}

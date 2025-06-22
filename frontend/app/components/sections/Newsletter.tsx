@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import Input from "../ui/Input";
+import { Input } from "../ui/Input";
 import Button from "../ui/Button";
 
 export default function Newsletter() {
@@ -114,8 +114,6 @@ export default function Newsletter() {
                     setEmail(e.target.value);
                     if (error) setError("");
                   }}
-                  error={error}
-                  fullWidth
                   aria-label="Email address"
                 />
               </div>

@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { Input } from "../ui/Input";
 import { Textarea } from "../ui/Textarea";
 import Button from "../ui/Button";
 import { getArticleBySlug } from "../../lib/articles";
+import { createAuthHeaders } from "../../lib/auth";
 
 interface ArticleLink {
   id: string;
@@ -29,15 +29,15 @@ const Chatbox: React.FC = () => {
     setLoading(true);
     try {
       // Get user email from localStorage for personalization
-      const userEmail = localStorage.getItem('user_email');
+      const userEmail = localStorage.getItem("user_email");
       console.log("User email from localStorage:", userEmail);
 
       const res = await fetch("http://localhost:8000/gen_news_with_request", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        headers: createAuthHeaders(),
+        body: JSON.stringify({
           user_request: input,
-          user_email: userEmail 
+          user_email: userEmail,
         }),
       });
       if (!res.ok) throw new Error("Failed to generate stories.");
@@ -45,7 +45,7 @@ const Chatbox: React.FC = () => {
       console.log("Backend response:", data); // Debug log
       const ids: number[] = data.article_ids || [];
       console.log("Article IDs:", ids); // Debug log
-      
+
       if (ids.length === 0) {
         setError("No stories were generated.");
         return;
@@ -60,7 +60,7 @@ const Chatbox: React.FC = () => {
           return {
             id: article.id.toString(),
             slug: article.slug || article.id.toString(),
-            title: article.title
+            title: article.title,
           };
         } catch (err) {
           console.error(`Failed to fetch article ${id}:`, err);
@@ -69,7 +69,9 @@ const Chatbox: React.FC = () => {
       });
 
       const fetchedArticles = await Promise.all(articlePromises);
-      const validArticles = fetchedArticles.filter(article => article !== null);
+      const validArticles = fetchedArticles.filter(
+        (article) => article !== null
+      );
       console.log("Valid articles:", validArticles); // Debug log
 
       if (validArticles.length === 0) {
@@ -92,21 +94,30 @@ const Chatbox: React.FC = () => {
       <form onSubmit={handleAsk} className="flex flex-col gap-4">
         <Textarea
           value={input}
-          onChange={e => setInput(e.target.value)}
+          onChange={(e) => setInput(e.target.value)}
           placeholder="Ask our AI agent about any topic..."
           className="min-h-[120px] text-base resize-none"
           disabled={loading}
         />
         <div className="flex justify-end">
-          <Button type="submit" isLoading={loading} size="md" className="min-w-[120px]">Ask</Button>
+          <Button
+            type="submit"
+            isLoading={loading}
+            size="md"
+            className="min-w-[120px]"
+          >
+            Ask
+          </Button>
         </div>
       </form>
-      <div className="mt-3 text-xs text-gray-500">This may take up to 1 minute to generate new stories.</div>
+      <div className="mt-3 text-xs text-gray-500">
+        This may take up to 1 minute to generate new stories.
+      </div>
       {error && <div className="mt-3 text-red-500 text-sm">{error}</div>}
       <div className="mt-6 min-h-[40px]">
         {showResult && articles.length > 0 && (
           <ul className="space-y-3 animate-fade-in">
-            {articles.map(article => (
+            {articles.map((article) => (
               <li key={article.id}>
                 <a
                   href={`/articles/${article.slug}`}
@@ -129,12 +140,18 @@ const Chatbox: React.FC = () => {
           animation: fadeIn 0.8s;
         }
         @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
       `}</style>
     </div>
   );
 };
 
-export default Chatbox; 
+export default Chatbox;
